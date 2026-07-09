@@ -206,9 +206,10 @@
     <div class="avisoRojo" id="avisoRojo"></div>
 
     <!-- Botones para rellenar hoja -->
-    <div id="botonesBonificacion" style="display:none;margin-top:14px;background:#f0f8fa;border:1px solid #a8d8e8;border-radius:10px;padding:12px;gap:8px;display:grid">
-      <div style="font-size:.9rem;font-weight:600;color:#0088bb">Llenar hoja con los diseños que ya tienes:</div>
-      <button id="btnRellenarAuto" style="background:#0088bb;color:#fff;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:600;cursor:pointer">🔄 Rellenar hoja automático</button>
+    <div id="botonesBonificacion" style="display:none;margin-top:14px;background:#f0f8fa;border:1px solid #a8d8e8;border-radius:10px;padding:12px;gap:8px">
+      <div style="font-size:.9rem;font-weight:600;color:#0088bb">Aprovecha tu hoja al máximo (pagas lo mismo):</div>
+      <button id="btnRellenarAuto" style="background:#0088bb;color:#fff;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:600;cursor:pointer">🔄 Rellenar hoja · piezas extra gratis</button>
+      <div id="msgRelleno" style="display:none;font-size:.85rem;color:#1f9d55;font-weight:600"></div>
       <div id="botonesMas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px"></div>
     </div>
 
@@ -516,48 +517,54 @@ function actualizarPago(){
 }
 
 /* ---- Rellenar hoja ---- */
-function calcularCapacidadHoja(){
-  // Calcula cuántas piezas MÁXIMO caben en UNA sola hoja 13×19"
-  // basándose en el tamaño promedio de los diseños actuales
-  if(disenos.length === 0) return 0;
+function rellenarHojaAutomatico(){
+  // Agrega piezas extra (proporcional a lo pedido) hasta llenar el espacio
+  // sobrante de la última hoja, SIN crear hojas adicionales.
+  if(!plan || plan.modo !== 'cant' || disenos.length === 0) return;
 
   const g = parseFloat($('gap').value) || 0;
   const giro = $('rotar').checked;
+  const base = empacar(g, giro);
+  if(base.colocs.length === 0) return;
+  const hojasObjetivo = base.numHojas;
+  const noCabenBase = base.noCaben;
 
-  let capacidadTotal = 0;
-  disenos.forEach(d => {
-    const grid = gridMax(d.w, d.h, g, giro);
-    capacidadTotal += grid.total;
-  });
+  const orig = disenos.map(d => Math.max(1, d.cant));
+  const bloqueado = disenos.map(() => false);
+  let agregadas = 0;
+  const LIMITE_EXTRA = 600; // tope de seguridad
 
-  return capacidadTotal;
-}
+  while(agregadas < LIMITE_EXTRA && bloqueado.some(b => !b)){
+    // Elegir el diseño más "rezagado" respecto a su proporción original
+    let mejor = -1, menorRatio = Infinity;
+    disenos.forEach((d, i) => {
+      if(bloqueado[i]) return;
+      const ratio = d.cant / orig[i];
+      if(ratio < menorRatio){ menorRatio = ratio; mejor = i; }
+    });
+    if(mejor < 0) break;
 
-function rellenarHojaAutomatico(){
-  // Solo agrega piezas hasta llenar UNA sola hoja, sin crear hojas adicionales
-  if(plan.numHojas !== 1) {
-    alert('Solo puedes rellenar cuando todo cabe en 1 hoja. Reduce las cantidades.');
-    return;
+    disenos[mejor].cant++;
+    const prueba = empacar(g, giro);
+    if(prueba.numHojas > hojasObjetivo || prueba.noCaben > noCabenBase){
+      disenos[mejor].cant--;       // no cupo: revertir y descartar este diseño
+      bloqueado[mejor] = true;
+    } else {
+      agregadas++;
+    }
   }
 
-  const capacidadMaxima = calcularCapacidadHoja();
-  const piezasActuales = disenos.reduce((sum, d) => sum + d.cant, 0);
-  const espacioDisponible = Math.max(0, capacidadMaxima - piezasActuales);
-
-  if(espacioDisponible <= 0) {
-    alert('La hoja ya está llena.');
-    return;
-  }
-
-  // Distribuir proporcionalmente
-  const proporciones = disenos.map(d => d.cant / piezasActuales);
-  disenos.forEach((d, i) => {
-    const add = Math.round(espacioDisponible * proporciones[i]);
-    d.cant += add;
-  });
-
-  hojaActiva = 0;
+  hojaActiva = Math.max(0, hojasObjetivo - 1);
   actualizar();
+
+  const msg = $('msgRelleno');
+  if(msg){
+    msg.textContent = agregadas > 0
+      ? '✅ Se agregaron ' + agregadas + ' pieza' + (agregadas!==1?'s':'') +
+        ' extra gratis · sigues pagando ' + hojasObjetivo + ' hoja' + (hojasObjetivo!==1?'s':'')
+      : 'Tu hoja ya está aprovechada al máximo 👌';
+    msg.style.display = 'block';
+  }
 }
 
 function agregarMasDelDiseno(indice){
@@ -569,8 +576,10 @@ function agregarMasDelDiseno(indice){
 function actualizarBotonesBonificacion(){
   const container = $('botonesBonificacion');
   const btnsMas = $('botonesMas');
+  const msg = $('msgRelleno');
+  if(msg) msg.style.display = 'none';
 
-  if(!plan || plan.modo !== 'cant' || plan.numHojas !== 1){
+  if(!plan || plan.modo !== 'cant' || plan.colocs.length === 0){
     container.style.display = 'none';
     return;
   }
