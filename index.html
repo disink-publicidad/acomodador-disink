@@ -586,14 +586,18 @@ function actualizarBotonesBonificacion(){
   btnsMas.innerHTML = '';
 
   disenos.forEach((d, i) => {
+    if(!d) return;
     const btn = document.createElement('button');
     btn.className = 'btnMas';
-    btn.textContent = '+ 5 del ' + d.nombre.split(' ')[0];
+    const nombre = (d.nombre || 'Diseño ' + (i+1)).split(' ')[0];
+    btn.textContent = '+ 5 del ' + nombre;
     btn.addEventListener('click', () => agregarMasDelDiseno(i));
     btnsMas.appendChild(btn);
   });
 
-  $('btnRellenarAuto').onclick = rellenarHojaAutomatico;
+  if($('btnRellenarAuto')){
+    $('btnRellenarAuto').onclick = rellenarHojaAutomatico;
+  }
 }
 
 function actualizar(){
