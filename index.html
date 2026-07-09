@@ -64,6 +64,9 @@
   .resumen{margin-top:14px;background:var(--paper);border:1px solid var(--borde);
     border-radius:10px;padding:12px 14px;font-size:.9rem;line-height:1.55}
   .resumen strong{color:var(--cyan)}
+  .impresionesDestacado{margin-top:12px;background:var(--verde);color:#fff;border-radius:10px;
+    padding:12px 14px;font-size:1.05rem;font-weight:700;text-align:center;line-height:1.4}
+  .impresionesDestacado small{display:block;font-size:.8rem;font-weight:400;margin-top:4px;opacity:.9}
   .avisoRojo{margin-top:10px;background:#fdf1f4;border:1px solid #f3c2d3;color:#b02a5b;
     border-radius:10px;padding:10px 12px;font-size:.85rem;display:none;line-height:1.45}
   .notaColor{margin-top:10px;font-size:.78rem;color:var(--gris);line-height:1.4}
@@ -83,6 +86,10 @@
   .datosBanco .clabe{font-family:monospace;font-size:1rem;font-weight:700;letter-spacing:1px}
   .datosBanco button{background:var(--verde);color:#fff;border:none;border-radius:7px;
     padding:7px 12px;font-size:.8rem;cursor:pointer;margin-top:6px}
+  .btnMas{background:#e8f5ff;color:#0088bb;border:1px solid #a8d8e8;border-radius:8px;
+    padding:8px 10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.15s}
+  .btnMas:hover{background:#d0ecf7;border-color:#0088bb}
+  .btnMas:active{transform:scale(0.98)}
 
   .botones{display:grid;gap:10px;margin-top:16px}
   button.wa{background:#25d366;color:#fff;border:none;border-radius:10px;
@@ -157,6 +164,7 @@
         <select id="modo">
           <option value="cant">Cantidades exactas · combinar diseños en la misma hoja</option>
           <option value="max">Llenar una hoja completa por cada diseño</option>
+          <option value="full">Diseño en hoja completa · la imagen ocupa todo el tabloide</option>
         </select>
       </div>
       <div class="campo full">
@@ -191,7 +199,18 @@
     </div>
 
     <div class="resumen" id="resumen">Sube al menos un diseño para empezar.</div>
+    <div class="impresionesDestacado" id="impresionesDestacado" style="display:none">
+      <span id="textoImpresiones"></span>
+      <small id="detalleImpresiones"></small>
+    </div>
     <div class="avisoRojo" id="avisoRojo"></div>
+
+    <!-- Botones para rellenar hoja -->
+    <div id="botonesBonificacion" style="display:none;margin-top:14px;background:#f0f8fa;border:1px solid #a8d8e8;border-radius:10px;padding:12px;gap:8px;display:grid">
+      <div style="font-size:.9rem;font-weight:600;color:#0088bb">Llenar hoja con los diseños que ya tienes:</div>
+      <button id="btnRellenarAuto" style="background:#0088bb;color:#fff;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:600;cursor:pointer">🔄 Rellenar hoja automático</button>
+      <div id="botonesMas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px"></div>
+    </div>
 
     <!-- ===== COSTO Y PAGO ===== -->
     <div class="pago" id="pago">
@@ -244,33 +263,54 @@
 
 <script>
 /* ╔══════════════════════════════════════════════════════════════════╗
-   ║           CONFIGURACIÓN DE DISINK — edita solo esta zona          ║
+   ║  CONFIGURACIÓN EXTERNA — actualiza config.json en lugar de esto   ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-const WHATSAPP = "523241037615";      // WhatsApp de Disink: 52 + 3241037615
+// Variables que se llenan desde config.json
+let WHATSAPP, MARGEN_HOJA, PRECIOS, BANCO, SUPABASE_URL, SUPABASE_KEY;
 
-const MARGEN_HOJA = 0.6;              // ← MARGEN DE LA HOJA EN CM.
-                                      //   Cámbialo aquí según tu impresora:
-                                      //   recién en servicio puede ser 0.3,
-                                      //   con desgaste hasta 0.8
+// Cargar config.json
+fetch('config.json')
+  .then(r => r.json())
+  .then(cfg => {
+    WHATSAPP = cfg.whatsapp;
+    MARGEN_HOJA = cfg.margen;
+    PRECIOS = cfg.precios;
+    SUPABASE_URL = cfg.supabase.url;
+    SUPABASE_KEY = cfg.supabase.key;
 
-const PRECIOS = {                     // ← PRECIO POR HOJA 13x19" ($ MXN)
-  couche300: 17,
-  couche250: 17,
-  couche150: 17,
-  adherible: 18,
-  albanene:  17                       //   ajusta el de albanene si es otro
-};
+    BANCO = {
+      nombre: cfg.banco.nombre,
+      titular: cfg.banco.titular,
+      cuenta: cfg.banco.cuenta,
+      otrosBancos: cfg.banco.otrosBancos,
+      tarjeta: cfg.banco.tarjeta,
+      clabe: cfg.banco.clabe,
+      sinFactura: cfg.banco.sinFactura
+    };
 
-const BANCO = {                       // ← DATOS PARA TRANSFERENCIA
-  nombre:  "BBVA",                    //   tu banco
-  titular: "José Héctor Arce M.",       //   nombre del titular
-  clabe:   "012180015732676359"       //   tu CLABE de 18 dígitos
-};
+    // Mostrar datos bancarios en UI
+    document.getElementById('bancoNombre').textContent = BANCO.nombre;
+    document.getElementById('bancoTitular').textContent = BANCO.titular;
+    document.getElementById('bancoClabe').textContent = BANCO.cuenta;
 
-const SUPABASE_URL = "https://gtmuhqkgelcrimmigqkk.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bXVocWtnZWxjcmltbWlncWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTY5NDUsImV4cCI6MjA5NzY3Mjk0NX0._12YliJUIPvgI1XSJKQnJUR12h4iTRFJEkXrWiQpQ-4";
-/* Si dejas SUPABASE_URL vacío, la app usa el menú de compartir del teléfono. */
+    // Actualizar el botón y mostrador de datos bancarios si existen más campos
+    if (BANCO.otrosBancos) {
+      const desc = document.querySelector('.datosBanco');
+      if (desc) {
+        const html = desc.innerHTML;
+        desc.innerHTML = html + '<br><small><b>Otros bancos:</b> ' + BANCO.otrosBancos + '</small>';
+      }
+    }
+    if (BANCO.tarjeta) {
+      const desc = document.querySelector('.datosBanco');
+      if (desc) {
+        const html = desc.innerHTML;
+        desc.innerHTML = html + '<br><small><b>Tarjeta:</b> ' + BANCO.tarjeta + '</small>';
+      }
+    }
+  })
+  .catch(err => console.error('Error cargando config.json:', err));
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║               FIN DE LA CONFIGURACIÓN — no editar abajo           ║
@@ -480,6 +520,82 @@ function actualizarPago(){
   $('pago').style.display = 'block';
 }
 
+/* ---- Rellenar hoja ---- */
+function calcularEspacioDisponible(){
+  if(!plan || plan.modo !== 'cant' || plan.colocs.length === 0) return null;
+
+  const m = MARGEN_HOJA;
+  const W = HOJA.w - 2*m;
+  const H = HOJA.h - 2*m;
+  const areaHoja = W * H;
+
+  let areaUsada = 0;
+  plan.colocs.forEach(c => {
+    areaUsada += c.w * c.h;
+  });
+
+  const areaDisponible = areaHoja - areaUsada;
+  const piezasQueCanbenAprox = Math.max(0, Math.floor(areaDisponible / 10)); // asume ~10 cm² por pieza en promedio
+
+  return {
+    areaHoja, areaUsada, areaDisponible,
+    piezasQueCanbenAprox: Math.min(piezasQueCanbenAprox, 100) // máximo 100 piezas sugeridas
+  };
+}
+
+function rellenarHojaAutomatico(){
+  const espacio = calcularEspacioDisponible();
+  if(!espacio || espacio.piezasQueCanbenAprox <= 0) return;
+
+  const totalActual = disenos.reduce((sum, d) => sum + d.cant, 0);
+  const aAgregar = Math.min(espacio.piezasQueCanbenAprox, 50);
+
+  // Distribuir proporcionalmente entre los diseños
+  const proporciones = disenos.map(d => d.cant / totalActual);
+  disenos.forEach((d, i) => {
+    const add = Math.round(aAgregar * proporciones[i]);
+    d.cant += add;
+  });
+
+  hojaActiva = 0;
+  actualizar();
+}
+
+function agregarMasDelDiseno(indice){
+  disenos[indice].cant += 5;
+  hojaActiva = 0;
+  actualizar();
+}
+
+function actualizarBotonesBonificacion(){
+  const container = $('botonesBonificacion');
+  const btnsMas = $('botonesMas');
+
+  if(!plan || plan.modo !== 'cant'){
+    container.style.display = 'none';
+    return;
+  }
+
+  const espacio = calcularEspacioDisponible();
+  if(!espacio || espacio.piezasQueCanbenAprox <= 0){
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'grid';
+  btnsMas.innerHTML = '';
+
+  disenos.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'btnMas';
+    btn.textContent = '+ 5 del ' + d.nombre.split(' ')[0];
+    btn.addEventListener('click', () => agregarMasDelDiseno(i));
+    btnsMas.appendChild(btn);
+  });
+
+  $('btnRellenarAuto').onclick = rellenarHojaAutomatico;
+}
+
 function actualizar(){
   const g = parseFloat($('gap').value) || 0;
   const giro = $('rotar').checked;
@@ -491,6 +607,7 @@ function actualizar(){
     $('resumen').textContent = 'Sube al menos un diseño para empezar.';
     $('btnEnviar').disabled = true;
     $('navHojas').style.display = 'none';
+    $('impresionesDestacado').style.display = 'none';
     plan = null; actualizarPago(); dibujar(); return;
   }
 
@@ -513,6 +630,28 @@ function actualizar(){
     if(hojaActiva >= plan.numHojas) hojaActiva = Math.max(0, plan.numHojas-1);
     $('lblHoja').textContent = 'Hoja ' + (hojaActiva+1) + ' de ' + plan.numHojas;
     $('tituloPrev').textContent = 'Vista previa · combinado en hoja 13 × 19"';
+    $('impresionesDestacado').style.display = 'block';
+    $('textoImpresiones').textContent = plan.colocs.length + ' impresiones en ' + plan.numHojas + ' hoja' + (plan.numHojas!==1?'s':'');
+    $('detalleImpresiones').textContent = 'Centradas en cada hoja';
+  } else if(modo === 'full'){
+    // Diseño en hoja completa: la imagen estira a todo el tabloide
+    plan = {modo:'full', numHojas: disenos.length, grids: []};
+    let ok = true;
+    disenos.forEach((d, i) => {
+      const el = $('infoCard'+i);
+      if(el) el.innerHTML = '<b>1 impresión</b> (imagen a tamaño tabloide)';
+    });
+    $('resumen').innerHTML = '<b>' + disenos.length + ' diseño' + (disenos.length>1?'s':'') +
+      '</b> · <strong>' + disenos.length + ' hoja' + (disenos.length>1?'s':'') + 
+      '</strong> 13×19" (imagen a tamaño completo) en ' + MATERIALES[$('material').value].nombre;
+    $('btnEnviar').disabled = false;
+    $('navHojas').style.display = disenos.length > 1 ? 'flex' : 'none';
+    if(hojaActiva >= disenos.length) hojaActiva = Math.max(0, disenos.length-1);
+    $('lblHoja').textContent = 'Hoja ' + (hojaActiva+1) + ' de ' + disenos.length;
+    $('tituloPrev').textContent = 'Vista previa · diseño a tamaño tabloide';
+    $('impresionesDestacado').style.display = 'block';
+    $('textoImpresiones').textContent = '1 impresión por hoja';
+    $('detalleImpresiones').textContent = 'Imagen estirada a 13×19" (con margen de ' + MARGEN_HOJA + ' cm)';
   } else {
     plan = {modo:'max', grids: disenos.map(d => gridMax(d.w, d.h, g, giro)), numHojas: disenos.length};
     let ok = true, lineas = [];
@@ -532,8 +671,13 @@ function actualizar(){
     if(hojaActiva >= disenos.length) hojaActiva = Math.max(0, disenos.length-1);
     $('lblHoja').textContent = 'Hoja ' + (hojaActiva+1) + ' de ' + disenos.length;
     $('tituloPrev').textContent = 'Vista previa · una hoja por diseño';
+    let totalPzas = plan.grids.reduce((s, g) => s + g.total, 0);
+    $('impresionesDestacado').style.display = 'block';
+    $('textoImpresiones').textContent = totalPzas + ' impresiones en ' + disenos.length + ' hoja' + (disenos.length>1?'s':'');
+    $('detalleImpresiones').textContent = 'Cada hoja llena al máximo';
   }
   actualizarPago();
+  actualizarBotonesBonificacion();
   dibujar();
 }
 
@@ -576,6 +720,13 @@ function dibujar(){
     plan.colocs.filter(c => c.hoja === hojaActiva).forEach(c => {
       drawPieza(ctx, disenos[c.i], m + c.x, m + c.y, c.w, c.h, c.rot, escala);
     });
+  } else if(plan.modo === 'full'){
+    // Diseño en hoja completa: imagen estirada a toda la hoja (menos margen)
+    const d = disenos[hojaActiva];
+    if(!d) return;
+    const w = HOJA.w - 2*m;
+    const h = HOJA.h - 2*m;
+    drawPieza(ctx, d, m, m, w, h, false, escala);
   } else {
     const d = disenos[hojaActiva];
     if(!d) return;
@@ -633,6 +784,16 @@ function generarPDF(){
       pie('DISINK · ' + cliente + ' · Hoja ' + (hi+1) + '/' + plan.numHojas + ' · ' +
         enHoja.length + ' pzas combinadas · 13x19" · ' + mat + (notas ? ' · ' + notas : ''));
     }
+  } else if(plan.modo === 'full'){
+    disenos.forEach((d, i) => {
+      if(i > 0) pdf.addPage([HOJA.w*10, HOJA.h*10], 'p');
+      totalPzas += 1;
+      const w = HOJA.w - 2*m;
+      const h = HOJA.h - 2*m;
+      addPieza(d, 0, 0, w, h, false);
+      pie('DISINK · ' + cliente + ' · Hoja ' + (i+1) + '/' + disenos.length + ' · ' +
+        'Diseño a tamaño tabloide 13x19" · ' + mat + (notas ? ' · ' + notas : ''));
+    });
   } else {
     disenos.forEach((d, i) => {
       if(i > 0) pdf.addPage([HOJA.w*10, HOJA.h*10], 'p');
