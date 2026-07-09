@@ -342,22 +342,17 @@ $('btnAyudaDiseno').addEventListener('click', () => {
 });
 
 /* ---- Pago: datos bancarios y radios ---- */
-$('bancoNombre').textContent = BANCO.nombre;
-$('bancoTitular').textContent = BANCO.titular;
-$('bancoClabe').textContent = BANCO.clabe;
-$('btnCopiarClabe').addEventListener('click', () => {
-  navigator.clipboard.writeText(BANCO.clabe).then(() => {
-    $('btnCopiarClabe').textContent = '✓ Copiada';
-    setTimeout(() => $('btnCopiarClabe').textContent = '📋 Copiar CLABE', 1500);
-  });
-});
+// Las líneas de BANCO se inicializan cuando config.json carga (ver arriba en el fetch)
 document.querySelectorAll('input[name=formaPago]').forEach(r =>
   r.addEventListener('change', mostrarBanco));
 function mostrarBanco(){
   const t = document.querySelector('input[name=formaPago]:checked').value === 'transferencia';
   $('datosBanco').style.display = t ? 'block' : 'none';
 }
-mostrarBanco();
+// Esperar a que config se cargue antes de inicializar
+setTimeout(() => {
+  if(BANCO && BANCO.nombre) mostrarBanco();
+}, 500);
 
 /* ---- Subida ---- */
 drop.addEventListener('click', () => file.click());
