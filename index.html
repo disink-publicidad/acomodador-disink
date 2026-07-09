@@ -516,39 +516,43 @@ function actualizarPago(){
 }
 
 /* ---- Rellenar hoja ---- */
-function calcularEspacioDisponible(){
-  if(!plan || plan.modo !== 'cant' || plan.colocs.length === 0) return null;
+function calcularCapacidadHoja(){
+  // Calcula cuántas piezas MÁXIMO caben en UNA sola hoja 13×19"
+  // basándose en el tamaño promedio de los diseños actuales
+  if(disenos.length === 0) return 0;
 
-  const m = MARGEN_HOJA;
-  const W = HOJA.w - 2*m;
-  const H = HOJA.h - 2*m;
-  const areaHoja = W * H;
+  const g = parseFloat($('gap').value) || 0;
+  const giro = $('rotar').checked;
 
-  let areaUsada = 0;
-  plan.colocs.forEach(c => {
-    areaUsada += c.w * c.h;
+  let capacidadTotal = 0;
+  disenos.forEach(d => {
+    const grid = gridMax(d.w, d.h, g, giro);
+    capacidadTotal += grid.total;
   });
 
-  const areaDisponible = areaHoja - areaUsada;
-  const piezasQueCanbenAprox = Math.max(0, Math.floor(areaDisponible / 10)); // asume ~10 cm² por pieza en promedio
-
-  return {
-    areaHoja, areaUsada, areaDisponible,
-    piezasQueCanbenAprox: Math.min(piezasQueCanbenAprox, 100) // máximo 100 piezas sugeridas
-  };
+  return capacidadTotal;
 }
 
 function rellenarHojaAutomatico(){
-  const espacio = calcularEspacioDisponible();
-  if(!espacio || espacio.piezasQueCanbenAprox <= 0) return;
+  // Solo agrega piezas hasta llenar UNA sola hoja, sin crear hojas adicionales
+  if(plan.numHojas !== 1) {
+    alert('Solo puedes rellenar cuando todo cabe en 1 hoja. Reduce las cantidades.');
+    return;
+  }
 
-  const totalActual = disenos.reduce((sum, d) => sum + d.cant, 0);
-  const aAgregar = Math.min(espacio.piezasQueCanbenAprox, 50);
+  const capacidadMaxima = calcularCapacidadHoja();
+  const piezasActuales = disenos.reduce((sum, d) => sum + d.cant, 0);
+  const espacioDisponible = Math.max(0, capacidadMaxima - piezasActuales);
 
-  // Distribuir proporcionalmente entre los diseños
-  const proporciones = disenos.map(d => d.cant / totalActual);
+  if(espacioDisponible <= 0) {
+    alert('La hoja ya está llena.');
+    return;
+  }
+
+  // Distribuir proporcionalmente
+  const proporciones = disenos.map(d => d.cant / piezasActuales);
   disenos.forEach((d, i) => {
-    const add = Math.round(aAgregar * proporciones[i]);
+    const add = Math.round(espacioDisponible * proporciones[i]);
     d.cant += add;
   });
 
