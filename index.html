@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disink · Acomoda tu diseño para impresión</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#14213d; --paper:#fbfaf7; --cyan:#00a6c0; --magenta:#e0398b;
+    --amarillo:#f5b301; --gris:#8a8f9c; --borde:#e3e1da; --verde:#1f9d55;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    background:var(--paper);color:var(--ink);min-height:100vh}
+  header{background:var(--ink);color:#fff;padding:18px 20px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .cmyk{display:flex;gap:4px}
+  .cmyk span{width:10px;height:10px;border-radius:50%;display:block}
+  .cmyk span:nth-child(1){background:var(--cyan)}
+  .cmyk span:nth-child(2){background:var(--magenta)}
+  .cmyk span:nth-child(3){background:var(--amarillo)}
+  .cmyk span:nth-child(4){background:#000;border:1px solid #444}
+  header h1{font-size:1.05rem;font-weight:600;letter-spacing:.3px}
+  header small{opacity:.75;font-weight:400;display:block;font-size:.78rem}
+  main{max-width:980px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:20px}
+  @media(min-width:820px){main{grid-template-columns:400px 1fr;align-items:start}}
+  .panel{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px}
+  .paso{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-weight:600;font-size:.95rem}
+  .paso b{background:var(--ink);color:#fff;border-radius:50%;width:22px;height:22px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0}
+  .drop{border:2px dashed var(--borde);border-radius:12px;padding:22px 14px;text-align:center;
+    cursor:pointer;transition:.15s;color:var(--gris);font-size:.9rem}
+  .drop:hover,.drop.over{border-color:var(--cyan);color:var(--cyan);background:#f2fbfd}
+  input[type=file]{display:none}
+  .lista{display:grid;gap:10px;margin-top:12px}
+  .card{border:1px solid var(--borde);border-radius:12px;padding:12px;display:grid;
+    grid-template-columns:64px 1fr auto;gap:12px;align-items:start}
+  .card img{width:64px;height:64px;object-fit:contain;background:#f4f3ef;border-radius:8px}
+  .fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .fila:last-of-type{margin-bottom:0}
+  .fila .etiqueta{font-size:.78rem;color:var(--gris);width:58px;flex-shrink:0}
+  .fila input{width:64px;padding:8px;border:1px solid var(--borde);border-radius:7px;
+    font-size:1rem;text-align:center}
+  .fila input.cant{border-color:var(--cyan);font-weight:700;color:var(--cyan)}
+  .fila span.x{font-size:.85rem;color:var(--gris)}
+  .card .info{font-size:.78rem;color:var(--gris);margin-top:6px}
+  .card .info b{color:var(--cyan)}
+  .card .warn{font-size:.74rem;color:#8a6d00;margin-top:4px}
+  .card button{background:none;border:none;color:#b02a5b;font-size:1.2rem;cursor:pointer;padding:6px}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .campo label{font-size:.78rem;color:var(--gris);display:block;margin-bottom:4px}
+  .campo input,.campo select{width:100%;padding:10px;border:1px solid var(--borde);
+    border-radius:8px;font-size:1rem;background:#fff;color:var(--ink)}
+  .campo input:focus,.campo select:focus{outline:2px solid var(--cyan);border-color:var(--cyan)}
+  .campo.full{grid-column:1/-1}
+  .ayudaMat{grid-column:1/-1;font-size:.82rem;color:var(--gris);line-height:1.45;
+    background:var(--paper);border:1px solid var(--borde);border-radius:8px;padding:9px 11px}
+  .ayudaMat b{color:var(--ink)}
+  .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;cursor:pointer}
+  .check input{width:18px;height:18px;accent-color:var(--cyan)}
+  .resumen{margin-top:14px;background:var(--paper);border:1px solid var(--borde);
+    border-radius:10px;padding:12px 14px;font-size:.9rem;line-height:1.55}
+  .resumen strong{color:var(--cyan)}
+  .avisoRojo{margin-top:10px;background:#fdf1f4;border:1px solid #f3c2d3;color:#b02a5b;
+    border-radius:10px;padding:10px 12px;font-size:.85rem;display:none;line-height:1.45}
+  .notaColor{margin-top:10px;font-size:.78rem;color:var(--gris);line-height:1.4}
+
+  /* Pago */
+  .pago{margin-top:14px;border:1.5px solid var(--verde);border-radius:12px;
+    padding:14px;display:none;background:#f4fbf6}
+  .pago h3{font-size:.95rem;margin-bottom:8px;color:var(--verde)}
+  .pago .total{font-size:1.5rem;font-weight:800;color:var(--ink);margin-bottom:4px}
+  .pago .desglose{font-size:.8rem;color:var(--gris);margin-bottom:10px}
+  .opcionPago{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--borde);
+    border-radius:10px;background:#fff;margin-bottom:8px;cursor:pointer;font-size:.85rem;line-height:1.45}
+  .opcionPago input{width:18px;height:18px;accent-color:var(--verde);margin-top:2px;flex-shrink:0}
+  .opcionPago b{display:block}
+  .datosBanco{background:#fff;border:1px dashed var(--verde);border-radius:10px;
+    padding:10px 12px;font-size:.85rem;line-height:1.6;display:none}
+  .datosBanco .clabe{font-family:monospace;font-size:1rem;font-weight:700;letter-spacing:1px}
+  .datosBanco button{background:var(--verde);color:#fff;border:none;border-radius:7px;
+    padding:7px 12px;font-size:.8rem;cursor:pointer;margin-top:6px}
+
+  .botones{display:grid;gap:10px;margin-top:16px}
+  button.wa{background:#25d366;color:#fff;border:none;border-radius:10px;
+    padding:15px;font-size:1rem;font-weight:700;cursor:pointer;transition:.15s}
+  button.wa:hover{background:#1fb457}
+  button.wa:disabled{background:#c6c9d2;cursor:not-allowed}
+  .previewWrap{position:sticky;top:16px}
+  .hoja{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:16px}
+  .hoja h2{font-size:.85rem;color:var(--gris);font-weight:600;margin-bottom:10px;
+    text-transform:uppercase;letter-spacing:.6px}
+  .navHojas{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px}
+  .navHojas button{border:1px solid var(--borde);background:#fff;border-radius:8px;
+    width:38px;height:34px;font-size:1rem;cursor:pointer}
+  .navHojas span{font-size:.85rem;color:var(--gris)}
+  canvas{width:100%;height:auto;display:block;background:#fff;
+    box-shadow:0 2px 14px rgba(20,33,61,.12);border-radius:4px}
+  footer{text-align:center;color:var(--gris);font-size:.78rem;padding:20px}
+  .overlay{position:fixed;inset:0;background:rgba(20,33,61,.72);display:flex;
+    align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal{background:#fff;border-radius:16px;max-width:440px;width:100%;padding:26px 22px;text-align:center}
+  .modal .cmyk{justify-content:center;margin-bottom:14px}
+  .modal h2{font-size:1.15rem;margin-bottom:12px}
+  .modal p{font-size:.92rem;line-height:1.55;color:#3c4358;margin-bottom:10px}
+  .modal p b{color:var(--ink)}
+  .modal .tiempo{font-size:.82rem;color:var(--gris);background:var(--paper);
+    border:1px solid var(--borde);border-radius:8px;padding:9px;margin:12px 0}
+  .modal button{width:100%;border:none;border-radius:10px;padding:13px;font-size:.95rem;
+    font-weight:600;cursor:pointer;margin-top:8px}
+  .modal .btnAyuda{background:#25d366;color:#fff}
+  .modal .btnSeguir{background:var(--ink);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="cmyk"><span></span><span></span><span></span><span></span></div>
+    <h2>Antes de empezar 👇</h2>
+    <p>⚠️ Si tu archivo está en <b>baja calidad, la impresión saldrá tal cual</b> se ve.
+      Nosotros imprimimos exactamente lo que nos envíes.</p>
+    <p>¿Prefieres que nuestro <b>área de diseño</b> revise o arregle tu archivo?
+      Escríbenos por WhatsApp.</p>
+    <div class="tiempo">🕐 Con apoyo de diseño, el tiempo de entrega es de
+      <b>1 a 2 días</b> a partir de que recibimos tu archivo.</div>
+    <button class="btnAyuda" id="btnAyudaDiseno">💬 Pedir ayuda al área de diseño</button>
+    <button class="btnSeguir" id="btnSeguir">Mi archivo está listo, continuar</button>
+  </div>
+</div>
+
+<header>
+  <div class="cmyk"><span></span><span></span><span></span><span></span></div>
+  <div>
+    <h1>DISINK PUBLICIDAD</h1>
+    <small>Acomoda tus diseños y envíanoslos listos para imprimir</small>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="paso"><b>1</b> Sube tus diseños</div>
+    <div class="drop" id="drop">
+      <span>Toca aquí para subir una o varias imágenes<br>(JPG o PNG)</span>
+    </div>
+    <input type="file" id="file" accept="image/png,image/jpeg" multiple>
+    <div class="lista" id="lista"></div>
+
+    <div class="paso" style="margin-top:20px"><b>2</b> Material y acomodo</div>
+    <div class="campos">
+      <div class="campo full">
+        <label>¿Cómo acomodamos tus piezas?</label>
+        <select id="modo">
+          <option value="cant">Cantidades exactas · combinar diseños en la misma hoja</option>
+          <option value="max">Llenar una hoja completa por cada diseño</option>
+        </select>
+      </div>
+      <div class="campo full">
+        <label>Material · hoja de 13 × 19 pulgadas (33 × 48.3 cm)</label>
+        <select id="material">
+          <option value="couche300">Couché 300 gr</option>
+          <option value="couche250">Couché 250 gr</option>
+          <option value="couche150">Couché 150 gr</option>
+          <option value="adherible">Adherible (solo impresión, sin corte)</option>
+          <option value="albanene">Albanene</option>
+        </select>
+      </div>
+      <div class="ayudaMat" id="ayudaMat"></div>
+      <div class="campo">
+        <label>Separación entre piezas (cm)</label>
+        <input type="number" id="gap" value="0.2" min="0" step="0.1" inputmode="decimal">
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="rotar" checked> Girar piezas si caben más</label>
+    <label class="check"><input type="checkbox" id="corte" checked> Mostrar líneas de corte</label>
+
+    <div class="paso" style="margin-top:20px"><b>3</b> Tus datos</div>
+    <div class="campos">
+      <div class="campo full">
+        <label>Tu nombre o negocio</label>
+        <input type="text" id="cliente" placeholder="Ej. Florería La Rosa">
+      </div>
+      <div class="campo full">
+        <label>Notas para Disink (opcional)</label>
+        <input type="text" id="notas" placeholder="Ej. entrega el viernes">
+      </div>
+    </div>
+
+    <div class="resumen" id="resumen">Sube al menos un diseño para empezar.</div>
+    <div class="avisoRojo" id="avisoRojo"></div>
+
+    <!-- ===== COSTO Y PAGO ===== -->
+    <div class="pago" id="pago">
+      <h3>💰 Costo de tu pedido</h3>
+      <div class="total" id="pagoTotal">$0</div>
+      <div class="desglose" id="pagoDesglose"></div>
+      <label class="opcionPago">
+        <input type="radio" name="formaPago" value="transferencia" checked>
+        <span><b>🏦 Pago por transferencia</b>
+        Envía de una vez tu pago completo y <u>solo pasas por tu pedido</u>, ya estará listo.</span>
+      </label>
+      <label class="opcionPago">
+        <input type="radio" name="formaPago" value="efectivo">
+        <span><b>💵 Pago en efectivo al llegar</b>
+        Tu pedido se empieza a imprimir en ese instante, mientras esperas.</span>
+      </label>
+      <div class="datosBanco" id="datosBanco">
+        <b>Datos para tu transferencia:</b><br>
+        Banco: <span id="bancoNombre"></span><br>
+        Titular: <span id="bancoTitular"></span><br>
+        CLABE: <span class="clabe" id="bancoClabe"></span><br>
+        <button id="btnCopiarClabe">📋 Copiar CLABE</button>
+        <div style="font-size:.75rem;color:var(--gris);margin-top:6px">
+          Manda tu comprobante en el mismo WhatsApp junto con tu pedido.</div>
+      </div>
+    </div>
+
+    <div class="notaColor">🎨 La impresión es en CMYK: los colores pueden variar ligeramente
+      respecto a tu pantalla. Si el color es crítico, indícalo en las notas.</div>
+
+    <div class="botones">
+      <button class="wa" id="btnEnviar" disabled>📲 Enviar mi pedido a Disink por WhatsApp</button>
+    </div>
+  </section>
+
+  <section class="previewWrap">
+    <div class="hoja">
+      <h2 id="tituloPrev">Vista previa · hoja 13 × 19"</h2>
+      <div class="navHojas" id="navHojas" style="display:none">
+        <button id="prevHoja">‹</button>
+        <span id="lblHoja"></span>
+        <button id="nextHoja">›</button>
+      </div>
+      <canvas id="cv" width="640" height="936"></canvas>
+    </div>
+  </section>
+</main>
+
+<footer>Disink Publicidad · Ixtlán del Río, Nayarit</footer>
+
+<script>
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║           CONFIGURACIÓN DE DISINK — edita solo esta zona          ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+const WHATSAPP = "5213111234567";     // WhatsApp de Disink (52 + 1 + número)
+
+const MARGEN_HOJA = 0.6;              // ← MARGEN DE LA HOJA EN CM.
+                                      //   Cámbialo aquí según tu impresora:
+                                      //   recién en servicio puede ser 0.3,
+                                      //   con desgaste hasta 0.8
+
+const PRECIOS = {                     // ← PRECIO POR HOJA 13x19" ($ MXN)
+  couche300: 17,
+  couche250: 17,
+  couche150: 17,
+  adherible: 18,
+  albanene:  17                       //   ajusta el de albanene si es otro
+};
+
+const BANCO = {                       // ← DATOS PARA TRANSFERENCIA
+  nombre:  "BBVA",                    //   tu banco
+  titular: "Disink Publicidad",       //   nombre del titular
+  clabe:   "000000000000000000"       //   tu CLABE de 18 dígitos
+};
+
+const SUPABASE_URL = "https://gtmuhqkgelcrimmigqkk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bXVocWtnZWxjcmltbWlncWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTY5NDUsImV4cCI6MjA5NzY3Mjk0NX0._12YliJUIPvgI1XSJKQnJUR12h4iTRFJEkXrWiQpQ-4" de Supabase
+/* Si dejas SUPABASE_URL vacío, la app usa el menú de compartir del teléfono. */
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║               FIN DE LA CONFIGURACIÓN — no editar abajo           ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+const HOJA = {w: 33.02, h: 48.26};
+const MAX_PIEZAS = 1500;
+
+const MATERIALES = {
+  couche300: {nombre:"Couché 300 gr", desc:"<b>El más usado.</b> Cartulina gruesa y firme, ideal para <b>tarjetas de presentación</b> y piezas que deben sentirse de calidad."},
+  couche250: {nombre:"Couché 250 gr", desc:"Grosor medio, perfecto para <b>carpetas</b> y trabajos generales que no necesitan tanta rigidez."},
+  couche150: {nombre:"Couché 150 gr", desc:"Papel más delgado y económico, el favorito para <b>volantes</b> y publicidad de volumen."},
+  adherible: {nombre:"Adherible", desc:"Vinil adherible <b>solo impresión, sin corte</b>. ⚠️ Si tu trabajo necesita <b>corte</b> (etiquetas recortadas), mándanos tu archivo directo por WhatsApp para cotizarlo."},
+  albanene: {nombre:"Albanene", desc:"Papel translúcido tipo calca, usado para planos, invitaciones y detalles elegantes."}
+};
+
+let disenos = [];
+let hojaActiva = 0;
+let plan = null;
+
+const $ = id => document.getElementById(id);
+const drop = $('drop'), file = $('file'), cv = $('cv'), ctx = cv.getContext('2d');
+
+/* ---- Modal ---- */
+$('btnSeguir').addEventListener('click', () => $('overlay').style.display = 'none');
+$('btnAyudaDiseno').addEventListener('click', () => {
+  window.open('https://wa.me/' + WHATSAPP + '?text=' +
+    encodeURIComponent('Hola Disink 👋 Quiero apoyo del área de diseño para preparar mi archivo de impresión.'), '_blank');
+});
+
+/* ---- Pago: datos bancarios y radios ---- */
+$('bancoNombre').textContent = BANCO.nombre;
+$('bancoTitular').textContent = BANCO.titular;
+$('bancoClabe').textContent = BANCO.clabe;
+$('btnCopiarClabe').addEventListener('click', () => {
+  navigator.clipboard.writeText(BANCO.clabe).then(() => {
+    $('btnCopiarClabe').textContent = '✓ Copiada';
+    setTimeout(() => $('btnCopiarClabe').textContent = '📋 Copiar CLABE', 1500);
+  });
+});
+document.querySelectorAll('input[name=formaPago]').forEach(r =>
+  r.addEventListener('change', mostrarBanco));
+function mostrarBanco(){
+  const t = document.querySelector('input[name=formaPago]:checked').value === 'transferencia';
+  $('datosBanco').style.display = t ? 'block' : 'none';
+}
+mostrarBanco();
+
+/* ---- Subida ---- */
+drop.addEventListener('click', () => file.click());
+drop.addEventListener('dragover', e => {e.preventDefault(); drop.classList.add('over')});
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('over');
+  [...e.dataTransfer.files].forEach(cargar);
+});
+file.addEventListener('change', () => { [...file.files].forEach(cargar); file.value=''; });
+
+function cargar(f){
+  if(!/image\/(png|jpeg)/.test(f.type)){ alert(f.name + ": sube solo JPG o PNG."); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const w = 9;
+      disenos.push({img: im, data: r.result, nombre: f.name,
+        w: w, h: +(w * im.height / im.width).toFixed(1), cant: 10});
+      hojaActiva = 0;
+      render();
+    };
+    im.src = r.result;
+  };
+  r.readAsDataURL(f);
+}
+
+function dpiDe(d){ return Math.round(d.img.width / (d.w / 2.54)); }
+
+/* =====================  ACOMODO  ===================== */
+function gridMax(w, h, g, giro){
+  const m = MARGEN_HOJA;
+  const utilW = HOJA.w - 2*m, utilH = HOJA.h - 2*m;
+  const calc = (a,b) => {
+    if(a > utilW || b > utilH) return {cols:0, rows:0, total:0};
+    const cols = Math.floor((utilW+g)/(a+g)), rows = Math.floor((utilH+g)/(b+g));
+    return {cols, rows, total: cols*rows};
+  };
+  const n = calc(w,h), r = calc(h,w);
+  if(giro && r.total > n.total) return {...r, girado:true, pw:h, ph:w};
+  return {...n, girado:false, pw:w, ph:h};
+}
+
+function empacar(g, giro){
+  const m = MARGEN_HOJA;
+  const W = HOJA.w - 2*m, H = HOJA.h - 2*m;
+  let piezas = [];
+  disenos.forEach((d, i) => {
+    for(let k = 0; k < Math.min(d.cant, MAX_PIEZAS); k++)
+      piezas.push({i, w: d.w, h: d.h, rot: false});
+  });
+  if(piezas.length > MAX_PIEZAS) piezas = piezas.slice(0, MAX_PIEZAS);
+
+  let noCaben = 0;
+  piezas = piezas.filter(p => {
+    const cabeNormal = p.w <= W && p.h <= H;
+    const cabeGirado = giro && p.h <= W && p.w <= H;
+    if(!cabeNormal && !cabeGirado){ noCaben++; return false; }
+    if(giro && p.h > p.w && p.h <= W && p.w <= H){
+      const t = p.w; p.w = p.h; p.h = t; p.rot = true;
+    }
+    if(p.w > W || p.h > H){
+      const t = p.w; p.w = p.h; p.h = t; p.rot = !p.rot;
+      if(p.w > W || p.h > H){ noCaben++; return false; }
+    }
+    return true;
+  });
+
+  piezas.sort((a,b) => b.h - a.h || b.w - a.w);
+
+  const hojas = [];
+  const colocs = [];
+  for(const p of piezas){
+    let ok = false;
+    for(let hi = 0; hi < hojas.length && !ok; hi++){
+      const hoja = hojas[hi];
+      for(const sh of hoja.shelves){
+        if(p.h <= sh.alto && sh.x + p.w <= W){
+          colocs.push({hoja: hi, x: sh.x, y: sh.y, w: p.w, h: p.h, i: p.i, rot: p.rot});
+          sh.x += p.w + g; ok = true; break;
+        }
+      }
+      if(!ok && hoja.usedH + p.h <= H){
+        hoja.shelves.push({y: hoja.usedH, alto: p.h, x: p.w + g});
+        colocs.push({hoja: hi, x: 0, y: hoja.usedH, w: p.w, h: p.h, i: p.i, rot: p.rot});
+        hoja.usedH += p.h + g; ok = true;
+      }
+    }
+    if(!ok){
+      hojas.push({shelves:[{y:0, alto:p.h, x:p.w+g}], usedH: p.h + g});
+      colocs.push({hoja: hojas.length-1, x:0, y:0, w:p.w, h:p.h, i:p.i, rot:p.rot});
+    }
+  }
+  return {numHojas: hojas.length, colocs, noCaben};
+}
+
+/* ================  RENDER  ================ */
+['material','gap','rotar','corte','modo'].forEach(id =>
+  $(id).addEventListener('input', () => { hojaActiva = 0; render(); })
+);
+$('prevHoja').addEventListener('click', () => { if(hojaActiva>0){hojaActiva--; actualizar();} });
+$('nextHoja').addEventListener('click', () => {
+  const max = plan ? plan.numHojas-1 : 0;
+  if(hojaActiva < max){hojaActiva++; actualizar();}
+});
+
+function render(){
+  $('ayudaMat').innerHTML = MATERIALES[$('material').value].desc;
+  const modo = $('modo').value;
+  const lista = $('lista');
+  lista.innerHTML = '';
+
+  disenos.forEach((d, i) => {
+    const dpi = dpiDe(d);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<img src="' + d.data + '">' +
+      '<div>' +
+        (modo === 'cant'
+          ? '<div class="fila"><span class="etiqueta">Piezas:</span>' +
+            '<input class="cant" type="number" min="1" step="1" inputmode="numeric" value="' + d.cant + '" data-i="'+i+'" data-k="cant"></div>'
+          : '') +
+        '<div class="fila"><span class="etiqueta">Medida:</span>' +
+          '<input type="number" step="0.1" min="0.5" inputmode="decimal" value="' + d.w + '" data-i="'+i+'" data-k="w">' +
+          '<span class="x">×</span>' +
+          '<input type="number" step="0.1" min="0.5" inputmode="decimal" value="' + d.h + '" data-i="'+i+'" data-k="h">' +
+          '<span class="x">cm</span>' +
+        '</div>' +
+        '<div class="info" id="infoCard'+i+'"></div>' +
+        (dpi < 150 ? '<div class="warn">⚠️ Baja resolución ('+dpi+' dpi): puede salir pixeleado</div>'
+          : (dpi < 250 ? '<div class="warn">ℹ️ '+dpi+' dpi — lo ideal son 300</div>' : '')) +
+      '</div>' +
+      '<button title="Quitar" data-del="'+i+'">✕</button>';
+    card.querySelector('[data-del]').addEventListener('click', () => {
+      disenos.splice(i,1); hojaActiva = 0; render();
+    });
+    card.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value) || 0;
+        disenos[+inp.dataset.i][inp.dataset.k] = inp.dataset.k==='cant' ? Math.max(1, Math.round(v)) : v;
+        actualizar();
+      });
+    });
+    lista.appendChild(card);
+  });
+  actualizar();
+}
+
+function actualizarPago(){
+  if(!plan || plan.numHojas === 0 || disenos.length === 0){
+    $('pago').style.display = 'none'; return;
+  }
+  const precio = PRECIOS[$('material').value] || 0;
+  const total = plan.numHojas * precio;
+  $('pagoTotal').textContent = '$' + total + ' MXN';
+  $('pagoDesglose').textContent = plan.numHojas + ' hoja' + (plan.numHojas!==1?'s':'') +
+    ' 13×19" × $' + precio + ' (' + MATERIALES[$('material').value].nombre + ')';
+  $('pago').style.display = 'block';
+}
+
+function actualizar(){
+  const g = parseFloat($('gap').value) || 0;
+  const giro = $('rotar').checked;
+  const modo = $('modo').value;
+  const aviso = $('avisoRojo');
+  aviso.style.display = 'none';
+
+  if(disenos.length === 0){
+    $('resumen').textContent = 'Sube al menos un diseño para empezar.';
+    $('btnEnviar').disabled = true;
+    $('navHojas').style.display = 'none';
+    plan = null; actualizarPago(); dibujar(); return;
+  }
+
+  if(modo === 'cant'){
+    plan = empacar(g, giro);
+    plan.modo = 'cant';
+    disenos.forEach((d, i) => {
+      const el = $('infoCard'+i);
+      if(el) el.innerHTML = 'Pedidas: <b>' + d.cant + '</b> pzas de ' + d.w + '×' + d.h + ' cm';
+    });
+    $('resumen').innerHTML = '<b>' + plan.colocs.length + ' piezas en total</b> acomodadas en <strong>' +
+      plan.numHojas + ' hoja' + (plan.numHojas!==1?'s':'') + '</strong> de 13×19" · ' +
+      MATERIALES[$('material').value].nombre;
+    if(plan.noCaben > 0){
+      aviso.textContent = plan.noCaben + ' pieza(s) no caben en la hoja de 13×19" por su tamaño. Revisa las medidas.';
+      aviso.style.display = 'block';
+    }
+    $('btnEnviar').disabled = plan.colocs.length === 0;
+    $('navHojas').style.display = plan.numHojas > 1 ? 'flex' : 'none';
+    if(hojaActiva >= plan.numHojas) hojaActiva = Math.max(0, plan.numHojas-1);
+    $('lblHoja').textContent = 'Hoja ' + (hojaActiva+1) + ' de ' + plan.numHojas;
+    $('tituloPrev').textContent = 'Vista previa · combinado en hoja 13 × 19"';
+  } else {
+    plan = {modo:'max', grids: disenos.map(d => gridMax(d.w, d.h, g, giro)), numHojas: disenos.length};
+    let ok = true, lineas = [];
+    disenos.forEach((d, i) => {
+      const grid = plan.grids[i];
+      if(grid.total === 0) ok = false;
+      const el = $('infoCard'+i);
+      if(el) el.innerHTML = grid.total > 0
+        ? 'Caben <b>' + grid.total + ' pzas</b> por hoja' + (grid.girado ? ' (giradas)' : '')
+        : '<span style="color:#b02a5b">No cabe en la hoja</span>';
+      lineas.push('Hoja ' + (i+1) + ': <strong>' + grid.total + ' pzas</strong> de ' + d.w + '×' + d.h + ' cm');
+    });
+    $('resumen').innerHTML = '<b>' + disenos.length + ' hoja' + (disenos.length>1?'s':'') +
+      '</b> de 13×19" en ' + MATERIALES[$('material').value].nombre + '<br>' + lineas.join('<br>');
+    $('btnEnviar').disabled = !ok;
+    $('navHojas').style.display = disenos.length > 1 ? 'flex' : 'none';
+    if(hojaActiva >= disenos.length) hojaActiva = Math.max(0, disenos.length-1);
+    $('lblHoja').textContent = 'Hoja ' + (hojaActiva+1) + ' de ' + disenos.length;
+    $('tituloPrev').textContent = 'Vista previa · una hoja por diseño';
+  }
+  actualizarPago();
+  dibujar();
+}
+
+/* ---- Dibujo ---- */
+function drawPieza(c2d, d, x, y, w, h, rot, escala){
+  const X = x*escala, Y = y*escala, W = w*escala, H = h*escala;
+  if(rot){
+    c2d.save();
+    c2d.translate(X+W/2, Y+H/2);
+    c2d.rotate(Math.PI/2);
+    c2d.drawImage(d.img, -H/2, -W/2, H, W);
+    c2d.restore();
+  } else {
+    c2d.drawImage(d.img, X, Y, W, H);
+  }
+  if($('corte').checked){
+    c2d.strokeStyle = 'rgba(20,33,61,.35)';
+    c2d.lineWidth = 1;
+    c2d.strokeRect(X, Y, W, H);
+  }
+}
+
+function dibujar(){
+  const m = MARGEN_HOJA;
+  const escala = cv.width / HOJA.w;
+  cv.height = Math.round(HOJA.h * escala);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  const g = parseFloat($('gap').value) || 0;
+
+  ctx.strokeStyle = '#d8d6cf';
+  ctx.setLineDash([6,5]);
+  ctx.strokeRect(m*escala, m*escala, (HOJA.w-2*m)*escala, (HOJA.h-2*m)*escala);
+  ctx.setLineDash([]);
+
+  if(!plan) return;
+
+  if(plan.modo === 'cant'){
+    plan.colocs.filter(c => c.hoja === hojaActiva).forEach(c => {
+      drawPieza(ctx, disenos[c.i], m + c.x, m + c.y, c.w, c.h, c.rot, escala);
+    });
+  } else {
+    const d = disenos[hojaActiva];
+    if(!d) return;
+    const grid = plan.grids[hojaActiva];
+    if(grid.total === 0) return;
+    const {pw, ph} = grid;
+    const x0 = m + (HOJA.w - 2*m - (grid.cols*pw + (grid.cols-1)*g))/2;
+    const y0 = m + (HOJA.h - 2*m - (grid.rows*ph + (grid.rows-1)*g))/2;
+    for(let r=0;r<grid.rows;r++)
+      for(let c=0;c<grid.cols;c++)
+        drawPieza(ctx, d, x0 + c*(pw+g), y0 + r*(ph+g), pw, ph, grid.girado, escala);
+  }
+}
+
+/* ================  PDF + ENVÍO  ================ */
+function rotadaCache(d){
+  if(d._rotData) return d._rotData;
+  const c = document.createElement('canvas');
+  c.width = d.img.height; c.height = d.img.width;
+  const cx = c.getContext('2d');
+  cx.translate(c.width/2, c.height/2);
+  cx.rotate(Math.PI/2);
+  cx.drawImage(d.img, -d.img.width/2, -d.img.height/2);
+  d._rotData = c.toDataURL('image/png');
+  return d._rotData;
+}
+
+function generarPDF(){
+  const m = MARGEN_HOJA;
+  const g = parseFloat($('gap').value) || 0;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({unit:'mm', format:[HOJA.w*10, HOJA.h*10], orientation:'p'});
+  const cliente = $('cliente').value.trim() || 'Sin nombre';
+  const notas = $('notas').value.trim();
+  const mat = MATERIALES[$('material').value].nombre;
+  const pie = (txt) => { pdf.setFontSize(7); pdf.setTextColor(140); pdf.text(txt, 5, HOJA.h*10 - 2); };
+  let totalPzas = 0;
+
+  const addPieza = (d, x, y, w, h, rot) => {
+    const data = rot ? rotadaCache(d) : d.data;
+    const fmt = rot ? 'PNG' : (d.data.startsWith('data:image/png') ? 'PNG' : 'JPEG');
+    pdf.addImage(data, fmt, (m+x)*10, (m+y)*10, w*10, h*10);
+    if($('corte').checked){
+      pdf.setDrawColor(160); pdf.setLineWidth(0.15);
+      pdf.rect((m+x)*10, (m+y)*10, w*10, h*10);
+    }
+  };
+
+  if(plan.modo === 'cant'){
+    for(let hi = 0; hi < plan.numHojas; hi++){
+      if(hi > 0) pdf.addPage([HOJA.w*10, HOJA.h*10], 'p');
+      const enHoja = plan.colocs.filter(c => c.hoja === hi);
+      enHoja.forEach(c => addPieza(disenos[c.i], c.x, c.y, c.w, c.h, c.rot));
+      totalPzas += enHoja.length;
+      pie('DISINK · ' + cliente + ' · Hoja ' + (hi+1) + '/' + plan.numHojas + ' · ' +
+        enHoja.length + ' pzas combinadas · 13x19" · ' + mat + (notas ? ' · ' + notas : ''));
+    }
+  } else {
+    disenos.forEach((d, i) => {
+      if(i > 0) pdf.addPage([HOJA.w*10, HOJA.h*10], 'p');
+      const grid = plan.grids[i];
+      totalPzas += grid.total;
+      const {pw, ph} = grid;
+      const x0 = (HOJA.w - 2*m - (grid.cols*pw + (grid.cols-1)*g))/2;
+      const y0 = (HOJA.h - 2*m - (grid.rows*ph + (grid.rows-1)*g))/2;
+      for(let r=0;r<grid.rows;r++)
+        for(let c=0;c<grid.cols;c++)
+          addPieza(d, x0 + c*(pw+g), y0 + r*(ph+g), pw, ph, grid.girado);
+      pie('DISINK · ' + cliente + ' · Hoja ' + (i+1) + '/' + disenos.length + ' · ' +
+        grid.total + ' pzas de ' + d.w + 'x' + d.h + ' cm · 13x19" · ' + mat + (notas ? ' · ' + notas : ''));
+    });
+  }
+  return {pdf, totalPzas};
+}
+
+async function subirASupabase(blob, nombre){
+  if(!SUPABASE_URL || !SUPABASE_KEY) return null;
+  const ruta = new Date().toISOString().slice(0,10) + '/' + Date.now() + '-' + nombre;
+  try{
+    const res = await fetch(SUPABASE_URL + '/storage/v1/object/pedidos/' + ruta, {
+      method: 'POST',
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/pdf'},
+      body: blob
+    });
+    if(!res.ok) return null;
+    return SUPABASE_URL + '/storage/v1/object/public/pedidos/' + ruta;
+  }catch(e){ return null; }
+}
+
+$('btnEnviar').addEventListener('click', async () => {
+  const btn = $('btnEnviar');
+  btn.disabled = true;
+  const txtOriginal = btn.textContent;
+  btn.textContent = '⏳ Generando tu archivo...';
+
+  try{
+    const {pdf, totalPzas} = generarPDF();
+    const cliente = $('cliente').value.trim() || 'cliente';
+    const notas = $('notas').value.trim();
+    const mat = MATERIALES[$('material').value].nombre;
+    const precio = PRECIOS[$('material').value] || 0;
+    const total = plan.numHojas * precio;
+    const formaPago = document.querySelector('input[name=formaPago]:checked').value;
+    const limpio = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const nombre = 'disink-' + limpio(cliente) + '-' + plan.numHojas + 'hojas-' +
+      totalPzas + 'pzas-' + limpio(mat) + '.pdf';
+    const blob = pdf.output('blob');
+
+    let msg = 'Hola Disink 👋 Soy ' + cliente + '. Mi pedido: ' + plan.numHojas +
+      ' hoja(s) 13x19" en ' + mat + ', ' + totalPzas + ' piezas en total. ' +
+      '💰 Total: $' + total + ' MXN. ' +
+      (formaPago === 'transferencia'
+        ? '🏦 Pagaré por transferencia y te mando mi comprobante para solo pasar por mi pedido.'
+        : '💵 Pagaré en efectivo al llegar para que se imprima en ese momento.') +
+      (notas ? ' Notas: ' + notas : '');
+
+    btn.textContent = '☁️ Subiendo a la nube...';
+    const link = await subirASupabase(blob, nombre);
+    if(link){
+      msg += ' 📎 Descarga mi plantilla aquí: ' + link;
+      window.open('https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(msg), '_blank');
+      return;
+    }
+
+    const archivo = new File([blob], nombre, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[archivo]})){
+      try{ await navigator.share({files:[archivo], text: msg, title:'Pedido Disink'}); return; }
+      catch(e){}
+    }
+
+    pdf.save(nombre);
+    window.open('https://wa.me/' + WHATSAPP + '?text=' +
+      encodeURIComponent(msg + ' (te adjunto el PDF que descargué)'), '_blank');
+  } finally {
+    btn.textContent = txtOriginal;
+    btn.disabled = false;
+  }
+});
+
+render();
+</script>
+</body>
+</html>
