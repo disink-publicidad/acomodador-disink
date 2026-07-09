@@ -570,13 +570,7 @@ function actualizarBotonesBonificacion(){
   const container = $('botonesBonificacion');
   const btnsMas = $('botonesMas');
 
-  if(!plan || plan.modo !== 'cant'){
-    container.style.display = 'none';
-    return;
-  }
-
-  const espacio = calcularEspacioDisponible();
-  if(!espacio || espacio.piezasQueCanbenAprox <= 0){
+  if(!plan || plan.modo !== 'cant' || plan.numHojas !== 1){
     container.style.display = 'none';
     return;
   }
