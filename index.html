@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Disink · Acomoda tu diseño para impresión</title>
+<link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
@@ -15,6 +16,7 @@
     background:var(--paper);color:var(--ink);min-height:100vh}
   header{background:var(--ink);color:#fff;padding:18px 20px;
     display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .logoImg{height:44px;width:auto;border-radius:8px;background:#fff;padding:3px}
   .cmyk{display:flex;gap:4px}
   .cmyk span{width:10px;height:10px;border-radius:50%;display:block}
   .cmyk span:nth-child(1){background:var(--cyan)}
@@ -131,6 +133,7 @@
 </div>
 
 <header>
+  <img class="logoImg" src="logo.png" alt="" onerror="this.remove()">
   <div class="cmyk"><span></span><span></span><span></span><span></span></div>
   <div>
     <h1>DISINK PUBLICIDAD</h1>
@@ -244,7 +247,7 @@
    ║           CONFIGURACIÓN DE DISINK — edita solo esta zona          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-const WHATSAPP = "5213111234567";     // WhatsApp de Disink (52 + 1 + número)
+const WHATSAPP = "523241037615";      // WhatsApp de Disink: 52 + 3241037615
 
 const MARGEN_HOJA = 0.6;              // ← MARGEN DE LA HOJA EN CM.
                                       //   Cámbialo aquí según tu impresora:
