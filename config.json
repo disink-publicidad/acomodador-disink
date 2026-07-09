@@ -1,0 +1,24 @@
+{
+  "whatsapp": "523241037615",
+  "margen": 0.6,
+  "banco": {
+    "nombre": "BBVA",
+    "titular": "José Héctor Arce Machuca",
+    "cuenta": "1573 2676 35",
+    "otrosBancos": "0121 8001 5732 6763 59",
+    "tarjeta": "4152 3146 3891 6042",
+    "clabe": "0121800157326763 59",
+    "sinFactura": true
+  },
+  "precios": {
+    "couche300": 17,
+    "couche250": 17,
+    "couche150": 17,
+    "adherible": 18,
+    "albanene": 17
+  },
+  "supabase": {
+    "url": "https://gtmuhqkgelcrimmigqkk.supabase.co",
+    "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bXVocWtnZWxjcmltbWlncWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTY5NDUsImV4cCI6MjA5NzY3Mjk0NX0._12YliJUIPvgI1XSJKQnJUR12h4iTRFJEkXrWiQpQ-4"
+  }
+}
