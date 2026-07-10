@@ -819,7 +819,10 @@ function generarPDF(){
 }
 
 async function subirASupabase(blob, nombre){
-  if(!SUPABASE_URL || !SUPABASE_KEY) return null;
+  if(!SUPABASE_URL || !SUPABASE_KEY){
+    console.error('Supabase: config.json no cargó (URL o KEY vacías)');
+    return null;
+  }
   const ruta = new Date().toISOString().slice(0,10) + '/' + Date.now() + '-' + nombre;
   try{
     const res = await fetch(SUPABASE_URL + '/storage/v1/object/pedidos/' + ruta, {
@@ -828,9 +831,31 @@ async function subirASupabase(blob, nombre){
         'Content-Type': 'application/pdf'},
       body: blob
     });
-    if(!res.ok) return null;
+    if(!res.ok){
+      console.error('Supabase: subida falló HTTP ' + res.status, await res.text());
+      return null;
+    }
     return SUPABASE_URL + '/storage/v1/object/public/pedidos/' + ruta;
-  }catch(e){ return null; }
+  }catch(e){
+    console.error('Supabase: error de red al subir', e);
+    return null;
+  }
+}
+
+function mostrarLinkManual(url){
+  let a = $('linkWAManual');
+  if(!a){
+    a = document.createElement('a');
+    a.id = 'linkWAManual';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.style.cssText = 'display:block;text-align:center;margin-top:8px;background:#eafaf0;' +
+      'border:1.5px solid #1f9d55;color:#1f9d55;border-radius:10px;padding:13px;' +
+      'font-weight:700;text-decoration:none;font-size:.95rem';
+    $('btnEnviar').parentNode.appendChild(a);
+  }
+  a.href = url;
+  a.textContent = '👉 Toca aquí para abrir WhatsApp con tu pedido';
 }
 
 $('btnEnviar').addEventListener('click', async () => {
@@ -838,6 +863,21 @@ $('btnEnviar').addEventListener('click', async () => {
   btn.disabled = true;
   const txtOriginal = btn.textContent;
   btn.textContent = '⏳ Generando tu archivo...';
+
+  // Abrir la pestaña AHORA, dentro del clic, para que el navegador no la
+  // bloquee como pop-up (window.open después de un await tarda demasiado
+  // y Chrome lo bloquea). Luego solo la redirigimos a WhatsApp.
+  let win = null;
+  try{
+    win = window.open('', '_blank');
+    if(win) win.document.write('<p style="font-family:sans-serif;padding:20px">⏳ Preparando tu pedido para WhatsApp…</p>');
+  }catch(e){ win = null; }
+
+  const abrirWA = (msg) => {
+    const url = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(msg);
+    if(win && !win.closed){ win.location.href = url; }
+    else { mostrarLinkManual(url); }   // pop-up bloqueado: link visible de respaldo
+  };
 
   try{
     const {pdf, totalPzas} = generarPDF();
@@ -864,9 +904,13 @@ $('btnEnviar').addEventListener('click', async () => {
     const link = await subirASupabase(blob, nombre);
     if(link){
       msg += ' 📎 Descarga mi plantilla aquí: ' + link;
-      window.open('https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(msg), '_blank');
+      abrirWA(msg);
       return;
     }
+
+    // Supabase falló: cerrar la pestaña de espera y usar compartir/descarga
+    if(win && !win.closed) win.close();
+    win = null;
 
     const archivo = new File([blob], nombre, {type:'application/pdf'});
     if(navigator.canShare && navigator.canShare({files:[archivo]})){
@@ -875,8 +919,7 @@ $('btnEnviar').addEventListener('click', async () => {
     }
 
     pdf.save(nombre);
-    window.open('https://wa.me/' + WHATSAPP + '?text=' +
-      encodeURIComponent(msg + ' (te adjunto el PDF que descargué)'), '_blank');
+    abrirWA(msg + ' (te adjunto el PDF que descargué)');
   } finally {
     btn.textContent = txtOriginal;
     btn.disabled = false;
