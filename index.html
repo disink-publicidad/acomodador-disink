@@ -856,6 +856,7 @@ function mostrarLinkManual(url){
   }
   a.href = url;
   a.textContent = '👉 Toca aquí para abrir WhatsApp con tu pedido';
+  a.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
 $('btnEnviar').addEventListener('click', async () => {
@@ -865,18 +866,46 @@ $('btnEnviar').addEventListener('click', async () => {
   btn.textContent = '⏳ Generando tu archivo...';
 
   // Abrir la pestaña AHORA, dentro del clic, para que el navegador no la
-  // bloquee como pop-up (window.open después de un await tarda demasiado
-  // y Chrome lo bloquea). Luego solo la redirigimos a WhatsApp.
+  // bloquee como pop-up. NO la redirigimos automáticamente a wa.me: en
+  // Android eso se bloquea por llegar "tarde" (sin gesto del usuario).
+  // En su lugar le escribimos un botón grande; el toque del cliente en ese
+  // botón sí es un gesto real y abre la app de WhatsApp sin problema.
   let win = null;
   try{
     win = window.open('', '_blank');
-    if(win) win.document.write('<p style="font-family:sans-serif;padding:20px">⏳ Preparando tu pedido para WhatsApp…</p>');
+    if(win){
+      win.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Disink</title></head>' +
+        '<body style="font-family:system-ui,sans-serif;background:#fbfaf7;color:#14213d;' +
+        'display:flex;align-items:center;justify-content:center;min-height:90vh;text-align:center">' +
+        '<p>⏳ Preparando tu pedido para WhatsApp…</p></body></html>');
+    }
   }catch(e){ win = null; }
 
   const abrirWA = (msg) => {
     const url = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(msg);
-    if(win && !win.closed){ win.location.href = url; }
-    else { mostrarLinkManual(url); }   // pop-up bloqueado: link visible de respaldo
+    mostrarLinkManual(url);   // respaldo siempre visible en la página principal
+    if(win && !win.closed){
+      try{
+        win.document.open();
+        win.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<title>Enviar pedido · Disink</title></head>' +
+          '<body style="font-family:system-ui,sans-serif;background:#fbfaf7;color:#14213d;' +
+          'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'min-height:90vh;gap:18px;padding:20px;text-align:center">' +
+          '<div style="font-size:1.15rem;font-weight:700">✅ Tu pedido está listo</div>' +
+          '<a href="' + url + '" style="background:#25d366;color:#fff;text-decoration:none;' +
+          'padding:16px 28px;border-radius:12px;font-weight:700;font-size:1.05rem">' +
+          '📲 Abrir WhatsApp y enviar mi pedido</a>' +
+          '<div style="font-size:.8rem;color:#8a8f9c;max-width:300px">Se abrirá WhatsApp con tu ' +
+          'mensaje y el link de tu archivo ya escritos. Solo presiona enviar.</div>' +
+          '</body></html>');
+        win.document.close();
+      }catch(e){
+        try{ win.location.href = url; }catch(_){ }
+      }
+    }
   };
 
   try{
