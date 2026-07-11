@@ -53,6 +53,7 @@ async function handler(req, res) {
           if (f && f.text) nombre = f.text.value;
         }
         const email = (s.customer_details && s.customer_details.email) || s.customer_email || null;
+        const contacto = (s.customer_details && s.customer_details.name) || null;
         // averiguar el price para saber el nivel
         let priceId = null;
         try {
@@ -65,6 +66,7 @@ async function handler(req, res) {
           priceId,
           email,
           nombre,
+          contacto,
           nivel: (s.metadata && s.metadata.plan) || planDesdePrecio(priceId),
         });
         break;

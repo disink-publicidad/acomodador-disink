@@ -42,22 +42,42 @@ async function sb(path, opts = {}) {
   return data;
 }
 
-// --- Generar un ID no adivinable: DISINK-XXXX (sin 0/O/1/I) ---
-function nuevoCodigo() {
-  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s = '';
-  for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)];
-  return 'DISINK-' + s;
+// --- Iniciales para el ID a partir de un nombre ---
+// "Francisco Uriel Arce Cruz" -> "FUAC" ; "Velas Isa" -> "VI"
+function inicialesDe(nombre) {
+  const limpio = String(nombre || '')
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '') // quita acentos
+    .replace(/[^A-Za-z ]/g, ' ')                       // solo letras y espacios
+    .trim();
+  if (!limpio) return 'DK';
+  const iniciales = limpio.split(/\s+/).map((p) => p.charAt(0).toUpperCase()).join('');
+  return iniciales.slice(0, 5) || 'DK';
 }
 
-async function generarIdUnico() {
-  for (let intento = 0; intento < 8; intento++) {
-    const code = nuevoCodigo();
-    const existe = await sb('miembros?id_cliente=eq.' + code + '&select=id_cliente');
-    if (Array.isArray(existe) && existe.length === 0) return code;
-  }
-  // último recurso: agrega tiempo para evitar choque
-  return 'DISINK-' + Date.now().toString(36).toUpperCase().slice(-5);
+// --- Siguiente número consecutivo (contador seguro en Supabase) ---
+async function siguienteNumero() {
+  // 1) contador atómico (ideal): función siguiente_consecutivo()
+  try {
+    const n = await sb('rpc/siguiente_consecutivo', { method: 'POST', body: '{}' });
+    const num = typeof n === 'number' ? n : parseInt(n, 10);
+    if (num && !isNaN(num)) return num;
+  } catch (_) {}
+  // 2) respaldo: contar miembros existentes + 1 (por si la función aún no está lista)
+  try {
+    const r = await sb('miembros?select=id_cliente');
+    return (Array.isArray(r) ? r.length : 0) + 1;
+  } catch (_) {}
+  // 3) último recurso: número basado en el tiempo (no choca)
+  return Date.now() % 100000;
+}
+
+// --- Generar el ID: INK-INICIALES-Nº  (ej. INK-FUAC-1) ---
+async function generarIdUnico(nombreParaIniciales) {
+  const ini = inicialesDe(nombreParaIniciales);
+  const num = await siguienteNumero();
+  const code = 'INK-' + ini + '-' + num;
+  // el número es único por el contador, así que no hay choques
+  return code;
 }
 
 async function buscarPorSubscription(subId) {
@@ -74,7 +94,7 @@ async function buscarPorCustomer(customerId) {
 
 // --- Crear el miembro (idempotente) a partir de los datos del pago ---
 // Si ya existe uno con esa suscripción, lo devuelve tal cual (no duplica).
-async function asegurarMiembro({ customerId, subscriptionId, priceId, email, nombre, nivel }) {
+async function asegurarMiembro({ customerId, subscriptionId, priceId, email, nombre, contacto, nivel }) {
   // 1) ¿ya existe por suscripción? -> idempotencia
   const yaSub = await buscarPorSubscription(subscriptionId);
   if (yaSub) return yaSub;
@@ -82,8 +102,10 @@ async function asegurarMiembro({ customerId, subscriptionId, priceId, email, nom
   // 2) ¿existe uno por cliente sin suscripción ligada? -> actualízalo
   const nvl = nivel || planDesdePrecio(priceId) || 'inicio';
   const pct = (PLANES[nvl] && PLANES[nvl].pct) || 0;
-  const nombreFinal = (nombre && nombre.trim()) || (email ? email.split('@')[0] : 'Cliente Disink');
-  const iniciales = nombreFinal.trim().charAt(0).toUpperCase();
+  const negocio = (nombre && nombre.trim()) || (email ? email.split('@')[0] : 'Cliente Disink');
+  const persona = (contacto && contacto.trim()) || '';
+  // iniciales del avatar (1-2 letras): de la persona si hay, si no del negocio
+  const iniciales = (persona || negocio).trim().charAt(0).toUpperCase();
 
   const yaCli = await buscarPorCustomer(customerId);
   if (yaCli) {
@@ -97,19 +119,21 @@ async function asegurarMiembro({ customerId, subscriptionId, priceId, email, nom
         descuento: pct,
         estado: 'activo',
         email: email || yaCli.email,
+        contacto: persona || yaCli.contacto,
       }),
     });
     return Array.isArray(upd) ? upd[0] : yaCli;
   }
 
-  // 3) crear nuevo
-  const id_cliente = await generarIdUnico();
+  // 3) crear nuevo -> ID INK-INICIALES-Nº (iniciales de la persona, o del negocio)
+  const id_cliente = await generarIdUnico(persona || negocio);
   const nuevo = await sb('miembros', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify({
       id_cliente,
-      nombre: nombreFinal,
+      nombre: negocio,
+      contacto: persona || null,
       iniciales,
       email: email || null,
       descuento: pct,

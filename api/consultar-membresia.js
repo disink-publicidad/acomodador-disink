@@ -34,6 +34,7 @@ module.exports = async (req, res) => {
       if (f && f.text) nombre = f.text.value;
     }
     const email = (s.customer_details && s.customer_details.email) || null;
+    const contacto = (s.customer_details && s.customer_details.name) || null;
     const priceId = s.line_items && s.line_items.data[0] && s.line_items.data[0].price
       ? s.line_items.data[0].price.id : null;
 
@@ -43,6 +44,7 @@ module.exports = async (req, res) => {
       priceId,
       email,
       nombre,
+      contacto,
       nivel: (s.metadata && s.metadata.plan) || planDesdePrecio(priceId),
     });
 
@@ -50,6 +52,7 @@ module.exports = async (req, res) => {
     res.status(200).json({
       id_cliente: m.id_cliente,
       nombre: m.nombre,
+      contacto: m.contacto,
       iniciales: m.iniciales,
       nivel: m.nivel,
       descuento: m.descuento,

@@ -385,12 +385,31 @@
   </div>
 </div>
 
+<!-- ═══════════ PANTALLA: GRACIAS (al enviar el pedido) ═══════════ -->
+<div class="overlay" id="overlayGracias" style="display:none">
+  <div style="background:#111a2e;border:1px solid #22314f;border-radius:16px;max-width:360px;width:92%;padding:24px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px">
+      <span style="width:10px;height:10px;border-radius:50%;background:#00c2de"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#ff3d9a"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#ffc233"></span>
+    </div>
+    <div style="font-size:2.8rem;margin:4px 0">💙</div>
+    <h3 id="graciasTitulo" style="font-size:1.25rem;font-weight:700;color:#eef2fb;margin:4px 0 6px">¡Gracias por tu pedido!</h3>
+    <p id="graciasTexto" style="font-size:.92rem;color:#a9b4cc;line-height:1.5;margin-bottom:18px">Ya lo recibimos por WhatsApp. Esperamos verte pronto.</p>
+    <button id="btnOtroPedido" style="width:100%;background:#1f9d55;color:#fff;border:none;border-radius:10px;padding:13px;font-size:1rem;font-weight:600;cursor:pointer">Hacer otro pedido</button>
+    <div style="margin-top:12px">
+      <a id="btnCerrarGracias" style="font-size:.78rem;color:#93a3bd;cursor:pointer;text-decoration:underline">Cerrar</a>
+    </div>
+  </div>
+</div>
+
 <header>
   <img class="logoImg" src="logo.png" alt="" onerror="this.remove()">
   <div class="cmyk"><span></span><span></span><span></span><span></span></div>
   <div>
     <h1>DISINK PUBLICIDAD</h1>
     <small>Acomoda tus diseños y envíanoslos listos para imprimir</small>
+    <div id="headerCliente" style="display:none;margin-top:3px;font-size:.82rem;color:#00c2de;font-weight:600"></div>
   </div>
 </header>
 
@@ -718,6 +737,35 @@ $('btnInvitado').addEventListener('click', () => {
 $('btnContinuarSaludo').addEventListener('click', cerrarClienteYSeguir);
 { const lp = $('linkPortal'); if(lp) lp.addEventListener('click', abrirPortalMembresia); }
 
+// Encabezado personalizado cuando hay cliente reconocido
+function pintarHeaderCliente(){
+  const el = $('headerCliente');
+  if(!el) return;
+  if(clienteFrecuente){
+    const partes = [clienteFrecuente.contacto, clienteFrecuente.nombre].filter(Boolean);
+    el.textContent = '💎 ' + (partes.join(' · ') || 'Cliente frecuente') +
+      (clienteFrecuente.descuento > 0 ? ' · −' + clienteFrecuente.descuento + '%' : '');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// Pantalla de GRACIAS al enviar el pedido por WhatsApp
+function mostrarGracias(){
+  let quien = '';
+  if(clienteFrecuente) quien = (clienteFrecuente.contacto || clienteFrecuente.nombre || '');
+  else quien = ($('cliente').value || '').trim();
+  quien = (quien || '').split(/\s+/)[0] || '';
+  $('graciasTitulo').textContent = quien ? ('¡Gracias, ' + quien + '!') : '¡Gracias por tu pedido!';
+  $('graciasTexto').innerHTML = 'Ya recibimos tu pedido por WhatsApp' +
+    (clienteFrecuente ? ' <b>(' + clienteFrecuente.id + ')</b>' : '') +
+    '. Esperamos verte pronto 💙';
+  $('overlayGracias').style.display = 'flex';
+}
+{ const b1 = $('btnOtroPedido'); if(b1) b1.addEventListener('click', () => location.reload()); }
+{ const b2 = $('btnCerrarGracias'); if(b2) b2.addEventListener('click', () => $('overlayGracias').style.display = 'none'); }
+
 async function buscarID(){
   const code = $('inputID').value.trim().toUpperCase();
   const err = $('idError');
@@ -738,14 +786,16 @@ async function buscarID(){
         err.textContent = 'Tu membresía está ' + c.estado + '. Escríbenos por WhatsApp para reactivarla.';
         err.style.display = 'block';
       } else {
-        clienteFrecuente = {id: code, nombre: c.nombre || '', descuento: c.descuento || 0};
+        clienteFrecuente = {id: code, nombre: c.nombre || '', contacto: c.contacto || '', descuento: c.descuento || 0};
         const cli = $('cliente'); if(cli) cli.value = c.nombre || '';
+        const quien = (c.contacto || c.nombre || '').split(/\s+/)[0] || '';
         const ini = (c.iniciales && c.iniciales.trim())
           ? c.iniciales.trim().toUpperCase()
-          : (c.nombre || 'D').trim().charAt(0).toUpperCase();
+          : (c.contacto || c.nombre || 'D').trim().charAt(0).toUpperCase();
         $('saludoAvatar').textContent = ini;
         $('saludoBadge').textContent = '◇ ' + code;
-        $('saludoNombre').textContent = '¡Hola de nuevo, ' + (c.nombre || '') + '!';
+        $('saludoNombre').textContent = '¡Hola de nuevo, ' + (quien || c.nombre || '') + '!';
+        pintarHeaderCliente();
         $('saludoTexto').textContent = (c.descuento > 0)
           ? 'Tu descuento de cliente frecuente (−' + c.descuento + '%) ya está activo.'
           : 'Qué gusto verte de nuevo.';
@@ -784,13 +834,15 @@ async function revisarRegresoDePago(){
         await new Promise(res => setTimeout(res, 1500));
       }
       if(data && data.id_cliente){
-        clienteFrecuente = {id: data.id_cliente, nombre: data.nombre || '', descuento: data.descuento || 0};
+        clienteFrecuente = {id: data.id_cliente, nombre: data.nombre || '', contacto: data.contacto || '', descuento: data.descuento || 0};
         const cli = $('cliente'); if(cli) cli.value = data.nombre || '';
-        $('saludoAvatar').textContent = (data.iniciales || (data.nombre || 'D').charAt(0)).toUpperCase();
+        const quien = (data.contacto || data.nombre || '').split(/\s+/)[0] || '';
+        $('saludoAvatar').textContent = (data.iniciales || (data.contacto || data.nombre || 'D').charAt(0)).toUpperCase();
         $('saludoBadge').textContent = '◇ ' + data.id_cliente;
-        $('saludoNombre').textContent = '¡Bienvenido a Disink' + (data.nombre ? ', ' + data.nombre : '') + '!';
+        $('saludoNombre').textContent = '¡Bienvenido a Disink' + (quien ? ', ' + quien : '') + '!';
         $('saludoTexto').textContent = 'Tu ID es ' + data.id_cliente +
           ' — guárdalo. Tu descuento de −' + (data.descuento || 0) + '% ya está activo.';
+        pintarHeaderCliente();
       } else {
         $('saludoNombre').textContent = 'Pago recibido ✅';
         $('saludoTexto').textContent = 'Tu ID llegará en segundos. Si no aparece, escríbenos por WhatsApp.';
@@ -1437,7 +1489,8 @@ $('btnEnviar').addEventListener('click', async () => {
   if(prep.hash === hashEstado() && prep.link){
     const url = urlWA(armarMsg(prep.totalPzas) + ' 📎 Descarga mi plantilla aquí: ' + prep.link);
     const w = window.open(url, '_blank');   // con gesto del usuario: no se bloquea
-    if(!w) location.href = url;             // respaldo si el navegador lo impide
+    if(!w){ location.href = url; return; }  // respaldo si el navegador lo impide
+    mostrarGracias();                       // pantalla de despedida
     return;
   }
 
