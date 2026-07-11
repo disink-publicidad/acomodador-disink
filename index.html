@@ -229,12 +229,14 @@
         Tu pedido se empieza a imprimir en ese instante, mientras esperas.</span>
       </label>
       <div class="datosBanco" id="datosBanco">
-        <b>Datos para tu transferencia:</b><br>
-        Banco: <span id="bancoNombre"></span><br>
-        Titular: <span id="bancoTitular"></span><br>
-        CLABE: <span class="clabe" id="bancoClabe"></span><br>
-        <button id="btnCopiarClabe">📋 Copiar CLABE</button>
-        <div style="font-size:.75rem;color:var(--gris);margin-top:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span id="bancoLogo" style="background:#072146;color:#fff;font-weight:800;
+            letter-spacing:1px;border-radius:6px;padding:3px 10px;font-size:.9rem">BBVA</span>
+          <b>Datos para tu transferencia</b>
+        </div>
+        <div style="font-size:.82rem">Titular: <b id="bancoTitular"></b></div>
+        <div id="bancoCampos"></div>
+        <div style="font-size:.75rem;color:var(--gris);margin-top:8px">
           Manda tu comprobante en el mismo WhatsApp junto con tu pedido.</div>
       </div>
     </div>
@@ -267,51 +269,93 @@
    ║  CONFIGURACIÓN EXTERNA — actualiza config.json en lugar de esto   ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-// Variables que se llenan desde config.json
-let WHATSAPP, MARGEN_HOJA, PRECIOS, BANCO, SUPABASE_URL, SUPABASE_KEY;
+// Valores INTEGRADOS de respaldo: la página funciona aunque config.json
+// no cargue (ej. al abrir el archivo localmente con doble clic, o si el
+// archivo falta en el hosting). Si config.json carga, sobreescribe esto.
+let WHATSAPP = "523241037615";
+let MARGEN_HOJA = 0.6;
+let PRECIOS = {couche300:17, couche250:17, couche150:17, adherible:18, albanene:17};
+let BANCO = {
+  nombre: "BBVA",
+  titular: "José Héctor Arce Machuca",
+  cuenta: "1573 2676 35",
+  otrosBancos: "0121 8001 5732 6763 59",
+  tarjeta: "4152 3146 3891 6042",
+  clabe: "0121800157326763 59",
+  sinFactura: true
+};
+let SUPABASE_URL = "https://gtmuhqkgelcrimmigqkk.supabase.co";
+let SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bXVocWtnZWxjcmltbWlncWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTY5NDUsImV4cCI6MjA5NzY3Mjk0NX0._12YliJUIPvgI1XSJKQnJUR12h4iTRFJEkXrWiQpQ-4";
 
-// Cargar config.json
+function copiarTexto(txt, btn){
+  const listo = () => {
+    btn.textContent = '✅ Copiado';
+    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 1600);
+  };
+  const respaldo = () => {
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    listo();
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(listo).catch(respaldo);
+  } else respaldo();
+}
+
+function aplicarBancoUI(){
+  document.getElementById('bancoLogo').textContent = BANCO.nombre || 'Banco';
+  document.getElementById('bancoTitular').textContent = BANCO.titular || '';
+  const filas = [
+    {titulo: 'Cuenta ' + (BANCO.nombre || ''), nota: 'si transfieres desde ' + (BANCO.nombre || 'el mismo banco'),
+     valor: BANCO.cuenta},
+    {titulo: 'CLABE', nota: 'si transfieres desde otro banco',
+     valor: BANCO.otrosBancos || BANCO.clabe},
+    {titulo: 'Tarjeta', nota: 'depósito a tarjeta',
+     valor: BANCO.tarjeta}
+  ];
+  const cont = document.getElementById('bancoCampos');
+  cont.innerHTML = '';
+  filas.forEach(f => {
+    if(!f.valor) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;' +
+      'gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--borde);' +
+      'border-radius:8px;padding:8px 10px;margin-top:8px';
+    const info = document.createElement('div');
+    info.innerHTML = '<div style="font-size:.72rem;color:var(--gris)">' + f.titulo +
+      ' · ' + f.nota + '</div><div class="clabe">' + f.valor + '</div>';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = '📋 Copiar';
+    b.style.marginTop = '0';
+    b.addEventListener('click', () => copiarTexto(String(f.valor).replace(/\s+/g,''), b));
+    row.appendChild(info);
+    row.appendChild(b);
+    cont.appendChild(row);
+  });
+}
+
+// Cargar config.json (si existe, actualiza los valores de respaldo)
 fetch('config.json')
   .then(r => r.json())
   .then(cfg => {
-    WHATSAPP = cfg.whatsapp;
-    MARGEN_HOJA = cfg.margen;
-    PRECIOS = cfg.precios;
-    SUPABASE_URL = cfg.supabase.url;
-    SUPABASE_KEY = cfg.supabase.key;
-
-    BANCO = {
-      nombre: cfg.banco.nombre,
-      titular: cfg.banco.titular,
-      cuenta: cfg.banco.cuenta,
-      otrosBancos: cfg.banco.otrosBancos,
-      tarjeta: cfg.banco.tarjeta,
-      clabe: cfg.banco.clabe,
-      sinFactura: cfg.banco.sinFactura
-    };
-
-    // Mostrar datos bancarios en UI
-    document.getElementById('bancoNombre').textContent = BANCO.nombre;
-    document.getElementById('bancoTitular').textContent = BANCO.titular;
-    document.getElementById('bancoClabe').textContent = BANCO.cuenta;
-
-    // Actualizar el botón y mostrador de datos bancarios si existen más campos
-    if (BANCO.otrosBancos) {
-      const desc = document.querySelector('.datosBanco');
-      if (desc) {
-        const html = desc.innerHTML;
-        desc.innerHTML = html + '<br><small><b>Otros bancos:</b> ' + BANCO.otrosBancos + '</small>';
-      }
-    }
-    if (BANCO.tarjeta) {
-      const desc = document.querySelector('.datosBanco');
-      if (desc) {
-        const html = desc.innerHTML;
-        desc.innerHTML = html + '<br><small><b>Tarjeta:</b> ' + BANCO.tarjeta + '</small>';
-      }
-    }
+    if(cfg.whatsapp) WHATSAPP = cfg.whatsapp;
+    if(cfg.margen != null) MARGEN_HOJA = cfg.margen;
+    if(cfg.precios) PRECIOS = cfg.precios;
+    if(cfg.supabase && cfg.supabase.url) SUPABASE_URL = cfg.supabase.url;
+    if(cfg.supabase && cfg.supabase.key) SUPABASE_KEY = cfg.supabase.key;
+    if(cfg.banco) BANCO = cfg.banco;
+    aplicarBancoUI();
+    if(disenos.length > 0) actualizar();  // recalcular por si cambió el margen
   })
-  .catch(err => console.error('Error cargando config.json:', err));
+  .catch(err => console.warn('config.json no cargó; usando valores integrados:', err));
+
+aplicarBancoUI();  // pintar de inmediato con los valores integrados
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║               FIN DE LA CONFIGURACIÓN — no editar abajo           ║
@@ -685,6 +729,7 @@ function actualizar(){
   actualizarPago();
   actualizarBotonesBonificacion();
   dibujar();
+  programarPreparacion();
 }
 
 /* ---- Dibujo ---- */
@@ -859,96 +904,104 @@ function mostrarLinkManual(url){
   a.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
+/* ---- Preparación anticipada del envío ----
+   Los navegadores móviles solo permiten saltar a la app de WhatsApp si
+   ocurre EN el instante del clic; si primero hay que esperar la subida
+   del PDF, lo bloquean. Solución: generar y subir el PDF por adelantado
+   (mientras el cliente termina de llenar sus datos). Al dar clic, el
+   link ya existe y WhatsApp se abre directo, sin pantallas intermedias. */
+let prep = {hash:'', link:null, promesa:null, blob:null, nombre:'', totalPzas:0};
+let prepTimer = null;
+
+function hashEstado(){
+  return JSON.stringify([
+    disenos.map(d => [d.nombre, d.w, d.h, d.cant, d.data.length]),
+    $('modo').value, $('material').value, $('gap').value,
+    $('rotar').checked, $('corte').checked,
+    $('cliente').value.trim(), $('notas').value.trim()
+  ]);
+}
+
+function prepararEnvio(){
+  if(disenos.length === 0 || !plan) return Promise.resolve(null);
+  if(plan.modo === 'cant' && plan.colocs.length === 0) return Promise.resolve(null);
+  const h = hashEstado();
+  if(prep.hash === h){
+    if(prep.link) return Promise.resolve(prep.link);
+    if(prep.promesa) return prep.promesa;
+  }
+  const {pdf, totalPzas} = generarPDF();
+  const cliente = $('cliente').value.trim() || 'cliente';
+  const mat = MATERIALES[$('material').value].nombre;
+  const limpio = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const nombre = 'disink-' + limpio(cliente) + '-' + plan.numHojas + 'hojas-' +
+    totalPzas + 'pzas-' + limpio(mat) + '.pdf';
+  const blob = pdf.output('blob');
+  const promesa = subirASupabase(blob, nombre).then(l => {
+    if(prep.hash === h){ prep.link = l; prep.promesa = null; }
+    return l;
+  });
+  prep = {hash:h, link:null, promesa, blob, nombre, totalPzas};
+  return promesa;
+}
+
+function programarPreparacion(){
+  clearTimeout(prepTimer);
+  prepTimer = setTimeout(prepararEnvio, 1500);
+}
+['cliente','notas'].forEach(id => $(id).addEventListener('input', programarPreparacion));
+
 $('btnEnviar').addEventListener('click', async () => {
   const btn = $('btnEnviar');
+  const cliente = $('cliente').value.trim() || 'cliente';
+  const notas = $('notas').value.trim();
+  const mat = MATERIALES[$('material').value].nombre;
+  const precio = PRECIOS[$('material').value] || 0;
+  const total = plan.numHojas * precio;
+  const formaPago = document.querySelector('input[name=formaPago]:checked').value;
+
+  const armarMsg = (totalPzas) =>
+    'Hola Disink 👋 Soy ' + cliente + '. Mi pedido: ' + plan.numHojas +
+    ' hoja(s) 13x19" en ' + mat + ', ' + totalPzas + ' piezas en total. ' +
+    '💰 Total: $' + total + ' MXN. ' +
+    (formaPago === 'transferencia'
+      ? '🏦 Pagaré por transferencia y te mando mi comprobante para solo pasar por mi pedido.'
+      : '💵 Pagaré en efectivo al llegar para que se imprima en ese momento.') +
+    (notas ? ' Notas: ' + notas : '');
+  const urlWA = m => 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(m);
+
+  // CASO 1: el PDF ya está subido → abrir WhatsApp DIRECTO, dentro del clic
+  if(prep.hash === hashEstado() && prep.link){
+    const url = urlWA(armarMsg(prep.totalPzas) + ' 📎 Descarga mi plantilla aquí: ' + prep.link);
+    const w = window.open(url, '_blank');   // con gesto del usuario: no se bloquea
+    if(!w) location.href = url;             // respaldo si el navegador lo impide
+    return;
+  }
+
+  // CASO 2: aún no termina de subir → esperar y navegar en ESTA pestaña
+  // (la navegación en la misma pestaña nunca es bloqueada como pop-up)
   btn.disabled = true;
   const txtOriginal = btn.textContent;
-  btn.textContent = '⏳ Generando tu archivo...';
-
-  // Abrir la pestaña AHORA, dentro del clic, para que el navegador no la
-  // bloquee como pop-up. NO la redirigimos automáticamente a wa.me: en
-  // Android eso se bloquea por llegar "tarde" (sin gesto del usuario).
-  // En su lugar le escribimos un botón grande; el toque del cliente en ese
-  // botón sí es un gesto real y abre la app de WhatsApp sin problema.
-  let win = null;
+  btn.textContent = '☁️ Subiendo tu archivo…';
   try{
-    win = window.open('', '_blank');
-    if(win){
-      win.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-        '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Disink</title></head>' +
-        '<body style="font-family:system-ui,sans-serif;background:#fbfaf7;color:#14213d;' +
-        'display:flex;align-items:center;justify-content:center;min-height:90vh;text-align:center">' +
-        '<p>⏳ Preparando tu pedido para WhatsApp…</p></body></html>');
-    }
-  }catch(e){ win = null; }
-
-  const abrirWA = (msg) => {
-    const url = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(msg);
-    mostrarLinkManual(url);   // respaldo siempre visible en la página principal
-    if(win && !win.closed){
-      try{
-        win.document.open();
-        win.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-          '<title>Enviar pedido · Disink</title></head>' +
-          '<body style="font-family:system-ui,sans-serif;background:#fbfaf7;color:#14213d;' +
-          'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-          'min-height:90vh;gap:18px;padding:20px;text-align:center">' +
-          '<div style="font-size:1.15rem;font-weight:700">✅ Tu pedido está listo</div>' +
-          '<a href="' + url + '" style="background:#25d366;color:#fff;text-decoration:none;' +
-          'padding:16px 28px;border-radius:12px;font-weight:700;font-size:1.05rem">' +
-          '📲 Abrir WhatsApp y enviar mi pedido</a>' +
-          '<div style="font-size:.8rem;color:#8a8f9c;max-width:300px">Se abrirá WhatsApp con tu ' +
-          'mensaje y el link de tu archivo ya escritos. Solo presiona enviar.</div>' +
-          '</body></html>');
-        win.document.close();
-      }catch(e){
-        try{ win.location.href = url; }catch(_){ }
-      }
-    }
-  };
-
-  try{
-    const {pdf, totalPzas} = generarPDF();
-    const cliente = $('cliente').value.trim() || 'cliente';
-    const notas = $('notas').value.trim();
-    const mat = MATERIALES[$('material').value].nombre;
-    const precio = PRECIOS[$('material').value] || 0;
-    const total = plan.numHojas * precio;
-    const formaPago = document.querySelector('input[name=formaPago]:checked').value;
-    const limpio = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-    const nombre = 'disink-' + limpio(cliente) + '-' + plan.numHojas + 'hojas-' +
-      totalPzas + 'pzas-' + limpio(mat) + '.pdf';
-    const blob = pdf.output('blob');
-
-    let msg = 'Hola Disink 👋 Soy ' + cliente + '. Mi pedido: ' + plan.numHojas +
-      ' hoja(s) 13x19" en ' + mat + ', ' + totalPzas + ' piezas en total. ' +
-      '💰 Total: $' + total + ' MXN. ' +
-      (formaPago === 'transferencia'
-        ? '🏦 Pagaré por transferencia y te mando mi comprobante para solo pasar por mi pedido.'
-        : '💵 Pagaré en efectivo al llegar para que se imprima en ese momento.') +
-      (notas ? ' Notas: ' + notas : '');
-
-    btn.textContent = '☁️ Subiendo a la nube...';
-    const link = await subirASupabase(blob, nombre);
+    const link = await prepararEnvio();
+    const msg = armarMsg(prep.totalPzas);
     if(link){
-      msg += ' 📎 Descarga mi plantilla aquí: ' + link;
-      abrirWA(msg);
+      location.href = urlWA(msg + ' 📎 Descarga mi plantilla aquí: ' + link);
       return;
     }
 
-    // Supabase falló: cerrar la pestaña de espera y usar compartir/descarga
-    if(win && !win.closed) win.close();
-    win = null;
-
-    const archivo = new File([blob], nombre, {type:'application/pdf'});
+    // Supabase falló: compartir el archivo o descargarlo
+    const archivo = new File([prep.blob], prep.nombre, {type:'application/pdf'});
     if(navigator.canShare && navigator.canShare({files:[archivo]})){
       try{ await navigator.share({files:[archivo], text: msg, title:'Pedido Disink'}); return; }
       catch(e){}
     }
-
-    pdf.save(nombre);
-    abrirWA(msg + ' (te adjunto el PDF que descargué)');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(prep.blob);
+    a.download = prep.nombre;
+    a.click();
+    mostrarLinkManual(urlWA(msg + ' (te adjunto el PDF que descargué)'));
   } finally {
     btn.textContent = txtOriginal;
     btn.disabled = false;
