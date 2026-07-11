@@ -8,12 +8,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
-    --ink:#14213d; --paper:#fbfaf7; --cyan:#00a6c0; --magenta:#e0398b;
-    --amarillo:#f5b301; --gris:#8a8f9c; --borde:#e3e1da; --verde:#1f9d55;
+    --ink:#14213d; --paper:#0d1526; --surface:#182238; --surface2:#111a2e;
+    --cyan:#00c2de; --magenta:#ff3d9a; --amarillo:#ffc233;
+    --gris:#a9b4cc; --muted:#6f7c99; --borde:#2a3652; --verde:#1f9d55; --texto:#eef2fb;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
-    background:var(--paper);color:var(--ink);min-height:100vh}
+    background:var(--paper);color:var(--texto);min-height:100vh}
   header{background:var(--ink);color:#fff;padding:18px 20px;
     display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .logoImg{height:44px;width:auto;border-radius:8px;background:#fff;padding:3px}
@@ -22,109 +23,354 @@
   .cmyk span:nth-child(1){background:var(--cyan)}
   .cmyk span:nth-child(2){background:var(--magenta)}
   .cmyk span:nth-child(3){background:var(--amarillo)}
-  .cmyk span:nth-child(4){background:#000;border:1px solid #444}
+  .cmyk span:nth-child(4){background:#5f5e5a;border:1px solid #444}
   header h1{font-size:1.05rem;font-weight:600;letter-spacing:.3px}
   header small{opacity:.75;font-weight:400;display:block;font-size:.78rem}
   main{max-width:980px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:20px}
   @media(min-width:820px){main{grid-template-columns:400px 1fr;align-items:start}}
-  .panel{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px}
-  .paso{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-weight:600;font-size:.95rem}
-  .paso b{background:var(--ink);color:#fff;border-radius:50%;width:22px;height:22px;
+  .panel{background:var(--surface);border:0.5px solid var(--borde);border-radius:14px;padding:18px}
+  .paso{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-weight:600;font-size:.95rem;color:var(--texto)}
+  .paso b{background:var(--cyan);color:#04252b;border-radius:50%;width:22px;height:22px;
     display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0}
   .drop{border:2px dashed var(--borde);border-radius:12px;padding:22px 14px;text-align:center;
-    cursor:pointer;transition:.15s;color:var(--gris);font-size:.9rem}
-  .drop:hover,.drop.over{border-color:var(--cyan);color:var(--cyan);background:#f2fbfd}
+    cursor:pointer;transition:.15s;color:var(--muted);font-size:.9rem;background:var(--surface2)}
+  .drop:hover,.drop.over{border-color:var(--cyan);color:var(--cyan);background:#0e2230}
   input[type=file]{display:none}
   .lista{display:grid;gap:10px;margin-top:12px}
-  .card{border:1px solid var(--borde);border-radius:12px;padding:12px;display:grid;
-    grid-template-columns:64px 1fr auto;gap:12px;align-items:start}
-  .card img{width:64px;height:64px;object-fit:contain;background:#f4f3ef;border-radius:8px}
+  .card{border:0.5px solid var(--borde);border-radius:12px;padding:12px;display:grid;
+    grid-template-columns:64px 1fr auto;gap:12px;align-items:start;background:var(--surface2)}
+  .card img{width:64px;height:64px;object-fit:contain;background:#0b1120;border-radius:8px}
   .fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .fila:last-of-type{margin-bottom:0}
   .fila .etiqueta{font-size:.78rem;color:var(--gris);width:58px;flex-shrink:0}
-  .fila input{width:64px;padding:8px;border:1px solid var(--borde);border-radius:7px;
-    font-size:1rem;text-align:center}
+  .fila input{width:64px;padding:8px;border:0.5px solid var(--borde);border-radius:7px;
+    font-size:1rem;text-align:center;background:#0b1120;color:var(--texto)}
   .fila input.cant{border-color:var(--cyan);font-weight:700;color:var(--cyan)}
   .fila span.x{font-size:.85rem;color:var(--gris)}
   .card .info{font-size:.78rem;color:var(--gris);margin-top:6px}
   .card .info b{color:var(--cyan)}
-  .card .warn{font-size:.74rem;color:#8a6d00;margin-top:4px}
-  .card button{background:none;border:none;color:#b02a5b;font-size:1.2rem;cursor:pointer;padding:6px}
+  .card .warn{font-size:.74rem;color:var(--amarillo);margin-top:4px}
+  .card button{background:none;border:none;color:#ff7a90;font-size:1.2rem;cursor:pointer;padding:6px}
   .campos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
   .campo label{font-size:.78rem;color:var(--gris);display:block;margin-bottom:4px}
-  .campo input,.campo select{width:100%;padding:10px;border:1px solid var(--borde);
-    border-radius:8px;font-size:1rem;background:#fff;color:var(--ink)}
+  .campo input,.campo select{width:100%;padding:10px;border:0.5px solid var(--borde);
+    border-radius:8px;font-size:1rem;background:#0b1120;color:var(--texto)}
   .campo input:focus,.campo select:focus{outline:2px solid var(--cyan);border-color:var(--cyan)}
+  .campo input::placeholder{color:var(--muted)}
+  .campo select option{background:#0b1120;color:var(--texto)}
   .campo.full{grid-column:1/-1}
   .ayudaMat{grid-column:1/-1;font-size:.82rem;color:var(--gris);line-height:1.45;
-    background:var(--paper);border:1px solid var(--borde);border-radius:8px;padding:9px 11px}
-  .ayudaMat b{color:var(--ink)}
-  .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;cursor:pointer}
+    background:var(--surface2);border:0.5px solid var(--borde);border-radius:8px;padding:9px 11px}
+  .ayudaMat b{color:var(--texto)}
+  .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;cursor:pointer;color:var(--texto)}
   .check input{width:18px;height:18px;accent-color:var(--cyan)}
-  .resumen{margin-top:14px;background:var(--paper);border:1px solid var(--borde);
-    border-radius:10px;padding:12px 14px;font-size:.9rem;line-height:1.55}
+  .resumen{margin-top:14px;background:var(--surface2);border:0.5px solid var(--borde);
+    border-radius:10px;padding:12px 14px;font-size:.9rem;line-height:1.55;color:var(--texto)}
   .resumen strong{color:var(--cyan)}
   .impresionesDestacado{margin-top:12px;background:var(--verde);color:#fff;border-radius:10px;
     padding:12px 14px;font-size:1.05rem;font-weight:700;text-align:center;line-height:1.4}
   .impresionesDestacado small{display:block;font-size:.8rem;font-weight:400;margin-top:4px;opacity:.9}
-  .avisoRojo{margin-top:10px;background:#fdf1f4;border:1px solid #f3c2d3;color:#b02a5b;
+  .avisoRojo{margin-top:10px;background:#3a1620;border:1px solid #6e2a3d;color:#ff9bb0;
     border-radius:10px;padding:10px 12px;font-size:.85rem;display:none;line-height:1.45}
-  .notaColor{margin-top:10px;font-size:.78rem;color:var(--gris);line-height:1.4}
+  .notaColor{margin-top:10px;font-size:.78rem;color:var(--muted);line-height:1.4}
 
   /* Pago */
   .pago{margin-top:14px;border:1.5px solid var(--verde);border-radius:12px;
-    padding:14px;display:none;background:#f4fbf6}
-  .pago h3{font-size:.95rem;margin-bottom:8px;color:var(--verde)}
-  .pago .total{font-size:1.5rem;font-weight:800;color:var(--ink);margin-bottom:4px}
+    padding:14px;display:none;background:#122a1f}
+  .pago h3{font-size:.95rem;margin-bottom:8px;color:#4fd08a}
+  .pago .total{font-size:1.5rem;font-weight:800;color:var(--texto);margin-bottom:4px}
   .pago .desglose{font-size:.8rem;color:var(--gris);margin-bottom:10px}
-  .opcionPago{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--borde);
-    border-radius:10px;background:#fff;margin-bottom:8px;cursor:pointer;font-size:.85rem;line-height:1.45}
+  .opcionPago{display:flex;gap:10px;align-items:flex-start;padding:10px;border:0.5px solid var(--borde);
+    border-radius:10px;background:var(--surface2);margin-bottom:8px;cursor:pointer;font-size:.85rem;line-height:1.45;color:var(--texto)}
   .opcionPago input{width:18px;height:18px;accent-color:var(--verde);margin-top:2px;flex-shrink:0}
   .opcionPago b{display:block}
-  .datosBanco{background:#fff;border:1px dashed var(--verde);border-radius:10px;
-    padding:10px 12px;font-size:.85rem;line-height:1.6;display:none}
-  .datosBanco .clabe{font-family:monospace;font-size:1rem;font-weight:700;letter-spacing:1px}
+  .datosBanco{background:var(--surface2);border:1px dashed var(--verde);border-radius:10px;
+    padding:10px 12px;font-size:.85rem;line-height:1.6;display:none;color:var(--texto)}
+  .datosBanco .clabe{font-family:monospace;font-size:1rem;font-weight:700;letter-spacing:1px;color:var(--texto)}
   .datosBanco button{background:var(--verde);color:#fff;border:none;border-radius:7px;
     padding:7px 12px;font-size:.8rem;cursor:pointer;margin-top:6px}
-  .btnMas{background:#e8f5ff;color:#0088bb;border:1px solid #a8d8e8;border-radius:8px;
+  .btnMas{background:#12283a;color:#7fd4ec;border:1px solid #2a3652;border-radius:8px;
     padding:8px 10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.15s}
-  .btnMas:hover{background:#d0ecf7;border-color:#0088bb}
+  .btnMas:hover{background:#173447;border-color:#00c2de}
   .btnMas:active{transform:scale(0.98)}
 
   .botones{display:grid;gap:10px;margin-top:16px}
   button.wa{background:#25d366;color:#fff;border:none;border-radius:10px;
     padding:15px;font-size:1rem;font-weight:700;cursor:pointer;transition:.15s}
   button.wa:hover{background:#1fb457}
-  button.wa:disabled{background:#c6c9d2;cursor:not-allowed}
+  button.wa:disabled{background:#3a4a63;cursor:not-allowed}
   .previewWrap{position:sticky;top:16px}
-  .hoja{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:16px}
-  .hoja h2{font-size:.85rem;color:var(--gris);font-weight:600;margin-bottom:10px;
+  .hoja{background:var(--surface);border:0.5px solid var(--borde);border-radius:14px;padding:16px}
+  .hoja h2{font-size:.85rem;color:var(--muted);font-weight:600;margin-bottom:10px;
     text-transform:uppercase;letter-spacing:.6px}
   .navHojas{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px}
-  .navHojas button{border:1px solid var(--borde);background:#fff;border-radius:8px;
-    width:38px;height:34px;font-size:1rem;cursor:pointer}
+  .navHojas button{border:0.5px solid var(--borde);background:var(--surface2);border-radius:8px;
+    width:38px;height:34px;font-size:1rem;cursor:pointer;color:var(--texto)}
   .navHojas span{font-size:.85rem;color:var(--gris)}
   canvas{width:100%;height:auto;display:block;background:#fff;
-    box-shadow:0 2px 14px rgba(20,33,61,.12);border-radius:4px}
-  footer{text-align:center;color:var(--gris);font-size:.78rem;padding:20px}
-  .overlay{position:fixed;inset:0;background:rgba(20,33,61,.72);display:flex;
+    box-shadow:0 2px 20px rgba(0,0,0,.45);border-radius:4px}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;padding:20px}
+  .overlay{position:fixed;inset:0;background:rgba(5,8,15,.82);display:flex;
     align-items:center;justify-content:center;padding:20px;z-index:50}
-  .modal{background:#fff;border-radius:16px;max-width:440px;width:100%;padding:26px 22px;text-align:center}
+  .modal{background:var(--surface);border:0.5px solid var(--borde);border-radius:16px;
+    max-width:440px;width:100%;padding:26px 22px;text-align:center;color:var(--texto)}
   .modal .cmyk{justify-content:center;margin-bottom:14px}
-  .modal h2{font-size:1.15rem;margin-bottom:12px}
-  .modal p{font-size:.92rem;line-height:1.55;color:#3c4358;margin-bottom:10px}
-  .modal p b{color:var(--ink)}
-  .modal .tiempo{font-size:.82rem;color:var(--gris);background:var(--paper);
-    border:1px solid var(--borde);border-radius:8px;padding:9px;margin:12px 0}
+  .modal h2{font-size:1.15rem;margin-bottom:12px;color:var(--texto)}
+  .modal p{font-size:.92rem;line-height:1.55;color:var(--gris);margin-bottom:10px}
+  .modal p b{color:var(--texto)}
+  .modal .tiempo{font-size:.82rem;color:var(--gris);background:var(--surface2);
+    border:0.5px solid var(--borde);border-radius:8px;padding:9px;margin:12px 0}
   .modal button{width:100%;border:none;border-radius:10px;padding:13px;font-size:.95rem;
     font-weight:600;cursor:pointer;margin-top:8px}
   .modal .btnAyuda{background:#25d366;color:#fff}
-  .modal .btnSeguir{background:var(--ink);color:#fff}
+  .modal .btnSeguir{background:var(--cyan);color:#04252b}
+
+  /* ═══════ PANTALLA DE INICIO / ID (estilo mockup, tema oscuro) ═══════ */
+  #overlayCliente{background:rgba(5,8,15,.85)}
+  #overlayCliente .disinkCard{width:100%;max-width:420px;background:#182238;
+    border:0.5px solid #2a3652;border-radius:16px;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    max-height:92vh;overflow-y:auto}
+  #overlayCliente .dkHeader{background:#14213d;padding:18px}
+  #overlayCliente .dkTop{display:flex;gap:5px;align-items:center}
+  #overlayCliente .dkDot{width:13px;height:13px;border-radius:50%;display:block}
+  #overlayCliente .dkBrand{color:#fff;font-weight:600;font-size:17px;letter-spacing:1px;margin-left:4px}
+  #overlayCliente .dkPill{color:#9FE1CB;font-size:12px;background:rgba(255,255,255,.12);
+    padding:4px 12px;border-radius:999px;margin-left:auto}
+  #overlayCliente .dkSub{color:#cdd3e0;font-size:13px;margin-top:8px}
+  #overlayCliente .dkBody{padding:18px;color:#eef2fb}
+  #overlayCliente .dkTitle{font-size:18px;font-weight:600;margin:2px 0 4px;color:#eef2fb}
+  #overlayCliente .dkLead{font-size:13px;color:#a9b4cc;margin-bottom:16px;line-height:1.5}
+  #overlayCliente .dkOpt{border:0.5px solid #2a3652;border-radius:14px;padding:16px;
+    margin-bottom:12px;background:#111a2e;transition:.15s}
+  #overlayCliente .dkOpt--cyan{border-left:4px solid #00c2de}
+  #overlayCliente .dkOpt--yellow{border-left:4px solid #ffc233;cursor:pointer}
+  #overlayCliente .dkOpt--yellow:hover{border-color:#ffc233;transform:translateY(-1px)}
+  #overlayCliente .dkOptTitle{font-size:15px;font-weight:600;display:flex;
+    align-items:center;gap:8px;color:#eef2fb}
+  #overlayCliente .dkOptDesc{font-size:12.5px;color:#a9b4cc;margin-top:6px;line-height:1.4}
+  #overlayCliente .dkRow{display:flex;gap:8px;margin-top:12px}
+  #overlayCliente .dkRow input{flex:1;background:#0b1120;border:0.5px solid #2a3652;
+    border-radius:10px;color:#fff;font-size:14px;padding:12px;outline:none;text-transform:uppercase}
+  #overlayCliente .dkRow input:focus{border-color:#00c2de}
+  #overlayCliente .dkRow input::placeholder{color:#6f7c99}
+  #overlayCliente .dkRow button{border-radius:999px;font-weight:600;font-size:14px;
+    padding:0 18px;background:#00c2de;color:#04252b;border:none;cursor:pointer}
+  #overlayCliente .dkRow button:disabled{background:#3a4a63;color:#93a3bd;cursor:not-allowed}
+  #overlayCliente .dkErr{display:none;color:#ff7a90;font-size:12.5px;margin-top:8px}
+  #overlayCliente .dkMem{border:1px dashed #ffc233;background:rgba(255,194,51,.08);
+    border-radius:12px;padding:12px 14px;margin-top:6px}
+  #overlayCliente .dkMemT{font-size:13px;font-weight:600;color:#ffc233}
+  #overlayCliente .dkMemD{font-size:12px;color:#e4cfa0;margin-top:3px;line-height:1.4}
+  #overlayCliente .dkMem a{color:#ffc233;text-decoration:underline;cursor:pointer;font-weight:600}
+  #overlayCliente .dkGreet{background:#153f36;border-radius:12px;padding:12px 14px;
+    display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  #overlayCliente .dkAvatar{width:38px;height:38px;border-radius:50%;background:#0F6E56;
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;
+    font-size:14px;flex-shrink:0}
+  #overlayCliente .dkGreetName{font-size:14px;font-weight:600;color:#eafff7}
+  #overlayCliente .dkGreetTag{font-size:12px;color:#9FE1CB}
+  #overlayCliente .dkBadge{background:#04342C;color:#9FE1CB;font-size:11px;
+    padding:4px 12px;border-radius:999px}
+  #overlayCliente .dkContinuar{width:100%;background:#1f9d55;color:#fff;border:none;
+    border-radius:999px;padding:14px;font-size:14px;font-weight:600;cursor:pointer}
+  #overlayCliente svg{flex-shrink:0}
+
+  /* ═══════ PANTALLA: MIRA CUÁNTO AHORRAS (3 membresías) ═══════ */
+  #overlayMembresia{background:rgba(5,8,15,.85);z-index:60}
+  #overlayMembresia .memCard{width:100%;max-width:420px;background:#182238;
+    border:0.5px solid #2a3652;border-radius:16px;overflow:hidden;
+    max-height:92vh;overflow-y:auto;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+  #overlayMembresia .memHead{background:#14213d;padding:16px;display:flex;gap:5px;align-items:center}
+  #overlayMembresia .memHead .dkDot{width:12px;height:12px;border-radius:50%;display:block}
+  #overlayMembresia .memBrand{color:#fff;font-weight:600;font-size:16px;letter-spacing:1px;margin-left:4px}
+  #overlayMembresia .memClose{margin-left:auto;color:#a9b4cc;font-size:12px;cursor:pointer}
+  #overlayMembresia .memBody{padding:16px;color:#eef2fb}
+  #overlayMembresia .memTitle{font-size:19px;font-weight:700;margin:0 0 2px;text-align:center;color:#eef2fb}
+  #overlayMembresia .memLead{color:#a9b4cc;font-size:12px;margin-bottom:16px;line-height:1.5;text-align:center}
+  #overlayMembresia .memGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;align-items:stretch}
+  #overlayMembresia .memCol{border:1px solid #2a3652;background:#111a2e;border-radius:12px;
+    padding:11px 7px;text-align:center;display:flex;flex-direction:column;cursor:pointer;transition:.15s}
+  #overlayMembresia .memCol:hover{border-color:#3f5170}
+  #overlayMembresia .memColSel{box-shadow:0 0 0 3px rgba(0,194,222,.55);border-color:#00c2de}
+  #overlayMembresia .memColPop{border:2px solid #ffc233;background:#191d1e;position:relative;padding-top:13px}
+  #overlayMembresia .memBadge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    background:#ffc233;color:#3a2c00;font-size:9px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  #overlayMembresia .memColName{font-size:12px;font-weight:700;letter-spacing:.5px;color:#eef2fb}
+  #overlayMembresia .memColPct{font-size:19px;font-weight:800;margin:6px 0}
+  #overlayMembresia .memColPct span{font-size:11px}
+  #overlayMembresia .memColSave{border-top:1px solid #2a3652;margin:8px 0;padding-top:8px}
+  #overlayMembresia .memColSavePop{border-top-color:#4a4022}
+  #overlayMembresia .memOld{color:#6f7c99;font-size:11px;text-decoration:line-through}
+  #overlayMembresia .memNew{color:#eef2fb;font-size:18px;font-weight:800}
+  #overlayMembresia .memAhorro{color:#4fd08a;font-size:11px;font-weight:600;margin-top:3px}
+  #overlayMembresia .memColFee{color:#a9b4cc;font-size:11px;margin:6px 0 10px}
+  #overlayMembresia .memColBtn{margin-top:auto;width:100%;background:#12283a;color:#7fd4ec;
+    border:1px solid #2a3652;border-radius:999px;padding:9px 4px;font-size:10.5px;font-weight:700;
+    cursor:pointer;line-height:1.25;transition:.15s}
+  #overlayMembresia .memColBtn:hover{background:#173447;border-color:#00c2de}
+  #overlayMembresia .memColBtn:active{transform:scale(0.97)}
+  #overlayMembresia .memColBtnPop{background:#4a3f1a;color:#ffe08a;border-color:#6b5a1f}
+  #overlayMembresia .memColBtnPop:hover{background:#5c4d20;border-color:#ffc233}
+  #overlayMembresia .memIncluye{background:#0e2230;border:1px solid #124b57;border-radius:10px;
+    padding:11px 12px;margin-top:14px;text-align:center;color:#8fe3f0;font-size:12px;line-height:1.45}
+  #overlayMembresia .memIncluye b{color:#fff}
+  #overlayMembresia .memIncluyeSub{color:#a9b4cc;font-size:11px;text-align:center;margin-top:6px}
+  #overlayMembresia .memMsg{background:#122a1f;border:1px solid #1f9d55;border-radius:10px;
+    padding:10px 12px;margin-top:10px;color:#cfeede;font-size:12px;line-height:1.5;text-align:center}
+  #overlayMembresia .memMsg a{color:#4fd08a;text-decoration:underline;cursor:pointer;font-weight:600}
+  #overlayMembresia .memInvitado{border:1px solid #2a3652;background:#0f1626;border-radius:12px;
+    padding:11px 14px;text-align:center;color:#a9b4cc;font-size:12.5px;margin-top:10px}
+  #overlayMembresia .memNota{color:#6f7c99;font-size:11px;text-align:center;margin-top:12px;line-height:1.5}
 </style>
 </head>
 <body>
 
-<div class="overlay" id="overlay">
+<!-- ═══════════ PANTALLA 0: ¿YA ERES CLIENTE? (ID) — estilo mockup ═══════════ -->
+<div class="overlay" id="overlayCliente">
+  <div class="disinkCard">
+    <div class="dkHeader">
+      <div class="dkTop">
+        <span class="dkDot" style="background:#00c2de"></span>
+        <span class="dkDot" style="background:#ff3d9a"></span>
+        <span class="dkDot" style="background:#ffc233"></span>
+        <span class="dkDot" style="background:#5f5e5a"></span>
+        <span class="dkBrand">DISINK</span>
+        <span class="dkPill">Imprime hoy mismo</span>
+      </div>
+      <div class="dkSub">Tu diseño, acomodado y listo para imprimir</div>
+    </div>
+
+    <div class="dkBody">
+
+      <!-- Paso A: pedir ID -->
+      <div id="pasoID">
+        <h3 class="dkTitle">¿Ya eres cliente Disink?</h3>
+        <p class="dkLead">Elige cómo continuar. En segundos empiezas a acomodar tu diseño.</p>
+
+        <div class="dkOpt dkOpt--cyan">
+          <div class="dkOptTitle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00c2de" stroke-width="2"><path d="M6 3h12l2 4-8 14L4 7z"/></svg>
+            Ya tengo mi ID
+          </div>
+          <div class="dkRow">
+            <input type="text" id="inputID" placeholder="DISINK-…" autocomplete="off">
+            <button id="btnEntrarID">Entrar</button>
+          </div>
+          <div class="dkErr" id="idError"></div>
+        </div>
+
+        <div class="dkOpt dkOpt--yellow" id="btnInvitado">
+          <div class="dkOptTitle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffc233" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+            Imprimir sin ID
+          </div>
+          <div class="dkOptDesc">Entra como invitado a precio normal. Puedes pedir tu membresía cuando quieras.</div>
+        </div>
+
+        <div class="dkMem">
+          <div class="dkMemT">◇ ¿Te gustaría tener un ID?</div>
+          <div class="dkMemD">Clientes frecuentes pagan menos en cada pedido. <a id="linkMembresia">Compra tu membresía aquí</a></div>
+        </div>
+      </div>
+
+      <!-- Paso B: saludo al cliente reconocido -->
+      <div id="pasoSaludo" style="display:none">
+        <div class="dkGreet">
+          <span class="dkAvatar" id="saludoAvatar">D</span>
+          <div style="flex:1;min-width:150px">
+            <div class="dkGreetName" id="saludoNombre">¡Hola de nuevo!</div>
+            <div class="dkGreetTag">Cliente frecuente · precios especiales activos</div>
+          </div>
+          <span class="dkBadge" id="saludoBadge">◇ DISINK-…</span>
+        </div>
+        <h3 class="dkTitle">¡Qué bueno verte otra vez!</h3>
+        <p class="dkLead" id="saludoTexto">Tus precios especiales ya están activos.</p>
+        <button class="dkContinuar" id="btnContinuarSaludo">Continuar →</button>
+        <div style="text-align:center;margin-top:10px">
+          <a id="linkPortal" style="font-size:.74rem;color:var(--gris);cursor:pointer;text-decoration:underline">Administrar o cancelar mi membresía</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANTALLA: COMPRA TU MEMBRESÍA (3 planes) ═══════════ -->
+<div class="overlay" id="overlayMembresia" style="display:none">
+  <div class="memCard">
+    <div class="memHead">
+      <span class="dkDot" style="background:#00c2de"></span>
+      <span class="dkDot" style="background:#ff3d9a"></span>
+      <span class="dkDot" style="background:#ffc233"></span>
+      <span class="dkDot" style="background:#5f5e5a"></span>
+      <span class="memBrand">DISINK</span>
+      <span class="memClose" id="btnCerrarMembresia">✕ Cerrar</span>
+    </div>
+
+    <div class="memBody">
+      <div class="memTitle">MIRA CUÁNTO AHORRAS</div>
+      <div class="memLead">Elige tu membresía. En un pedido de $200 pagarías:</div>
+
+      <div class="memGrid">
+
+        <!-- INICIO 10% -->
+        <div class="memCol" data-plan="inicio">
+          <div class="memColName">INICIO</div>
+          <div class="memColPct" style="color:#00c2de">10%<span> OFF</span></div>
+          <div class="memColSave">
+            <div class="memOld">$200</div>
+            <div class="memNew">$180</div>
+            <div class="memAhorro">ahorras $20</div>
+          </div>
+          <div class="memColFee">$50/mes</div>
+          <button class="memColBtn" id="btnActivarInicio" data-plan="inicio">ACTIVAR MEMBRESÍA</button>
+        </div>
+
+        <!-- STANDARD 15% (resaltado) -->
+        <div class="memCol memColPop" data-plan="standard">
+          <div class="memBadge">★ POPULAR</div>
+          <div class="memColName" style="color:#ffc233">STANDARD</div>
+          <div class="memColPct" style="color:#ffe08a">15%<span> OFF</span></div>
+          <div class="memColSave memColSavePop">
+            <div class="memOld" style="color:#8a7a4a">$200</div>
+            <div class="memNew">$170</div>
+            <div class="memAhorro">ahorras $30</div>
+          </div>
+          <div class="memColFee" style="color:#e4cfa0">$75/mes</div>
+          <button class="memColBtn memColBtnPop" id="btnActivarStandard" data-plan="standard">ACTIVAR MEMBRESÍA</button>
+        </div>
+
+        <!-- VIP 20% -->
+        <div class="memCol" data-plan="vip">
+          <div class="memColName">VIP</div>
+          <div class="memColPct" style="color:#ff6b3d">20%<span> OFF</span></div>
+          <div class="memColSave">
+            <div class="memOld">$200</div>
+            <div class="memNew">$160</div>
+            <div class="memAhorro">ahorras $40</div>
+          </div>
+          <div class="memColFee">$99/mes</div>
+          <button class="memColBtn" id="btnActivarVip" data-plan="vip">ACTIVAR MEMBRESÍA</button>
+        </div>
+
+      </div>
+
+      <div class="memIncluye">⚡ Con tu membresía <b>entregamos en menos de 10 minutos</b> desde que nos mandas tus archivos listos</div>
+      <div class="memIncluyeSub">Todas incluyen rellenos de hoja gratis + ID de cliente 💎</div>
+
+      <div class="memMsg" id="memMsg" style="display:none"></div>
+
+      <!-- Invitado -->
+      <div class="memInvitado">Invitado · $0 — precio normal, sin ID</div>
+
+      <div class="memNota">Cobro mensual seguro con tarjeta vía Stripe. Al activar tu membresía aceptas los <a href="legal.html" target="_blank" style="color:inherit;text-decoration:underline">Términos y el Aviso de Privacidad</a>.</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" style="display:none">
   <div class="modal">
     <div class="cmyk"><span></span><span></span><span></span><span></span></div>
     <h2>Antes de empezar 👇</h2>
@@ -139,12 +385,31 @@
   </div>
 </div>
 
+<!-- ═══════════ PANTALLA: GRACIAS (al enviar el pedido) ═══════════ -->
+<div class="overlay" id="overlayGracias" style="display:none">
+  <div style="background:#111a2e;border:1px solid #22314f;border-radius:16px;max-width:360px;width:92%;padding:24px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px">
+      <span style="width:10px;height:10px;border-radius:50%;background:#00c2de"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#ff3d9a"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#ffc233"></span>
+    </div>
+    <div style="font-size:2.8rem;margin:4px 0">💙</div>
+    <h3 id="graciasTitulo" style="font-size:1.25rem;font-weight:700;color:#eef2fb;margin:4px 0 6px">¡Gracias por tu pedido!</h3>
+    <p id="graciasTexto" style="font-size:.92rem;color:#a9b4cc;line-height:1.5;margin-bottom:18px">Ya lo recibimos por WhatsApp. Esperamos verte pronto.</p>
+    <button id="btnOtroPedido" style="width:100%;background:#1f9d55;color:#fff;border:none;border-radius:10px;padding:13px;font-size:1rem;font-weight:600;cursor:pointer">Hacer otro pedido</button>
+    <div style="margin-top:12px">
+      <a id="btnCerrarGracias" style="font-size:.78rem;color:#93a3bd;cursor:pointer;text-decoration:underline">Cerrar</a>
+    </div>
+  </div>
+</div>
+
 <header>
   <img class="logoImg" src="logo.png" alt="" onerror="this.remove()">
   <div class="cmyk"><span></span><span></span><span></span><span></span></div>
   <div>
     <h1>DISINK PUBLICIDAD</h1>
     <small>Acomoda tus diseños y envíanoslos listos para imprimir</small>
+    <div id="headerCliente" style="display:none;margin-top:3px;font-size:.82rem;color:#00c2de;font-weight:600"></div>
   </div>
 </header>
 
@@ -206,8 +471,8 @@
     <div class="avisoRojo" id="avisoRojo"></div>
 
     <!-- Botones para rellenar hoja -->
-    <div id="botonesBonificacion" style="display:none;margin-top:14px;background:#f0f8fa;border:1px solid #a8d8e8;border-radius:10px;padding:12px;gap:8px">
-      <div style="font-size:.9rem;font-weight:600;color:#0088bb">Aprovecha tu hoja al máximo (pagas lo mismo):</div>
+    <div id="botonesBonificacion" style="display:none;margin-top:14px;background:#12283a;border:1px solid #2a3652;border-radius:10px;padding:12px;gap:8px">
+      <div style="font-size:.9rem;font-weight:600;color:#7fd4ec">Aprovecha tu hoja al máximo (pagas lo mismo):</div>
       <button id="btnRellenarAuto" style="background:#0088bb;color:#fff;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:600;cursor:pointer">🔄 Rellenar hoja · piezas extra gratis</button>
       <div id="msgRelleno" style="display:none;font-size:.85rem;color:#1f9d55;font-weight:600"></div>
       <div id="botonesMas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px"></div>
@@ -286,6 +551,8 @@ let BANCO = {
 };
 let SUPABASE_URL = "https://gtmuhqkgelcrimmigqkk.supabase.co";
 let SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bXVocWtnZWxjcmltbWlncWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTY5NDUsImV4cCI6MjA5NzY3Mjk0NX0._12YliJUIPvgI1XSJKQnJUR12h4iTRFJEkXrWiQpQ-4";
+// Base de las funciones de servidor (Vercel). Vacío = mismo dominio. No cambiar salvo pruebas.
+let API_BASE = "";
 
 function copiarTexto(txt, btn){
   const listo = () => {
@@ -324,7 +591,7 @@ function aplicarBancoUI(){
     if(!f.valor) return;
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;' +
-      'gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--borde);' +
+      'gap:8px;flex-wrap:wrap;background:#0b1120;border:0.5px solid var(--borde);' +
       'border-radius:8px;padding:8px 10px;margin-top:8px';
     const info = document.createElement('div');
     info.innerHTML = '<div style="font-size:.72rem;color:var(--gris)">' + f.titulo +
@@ -349,6 +616,7 @@ fetch('config.json')
     if(cfg.precios) PRECIOS = cfg.precios;
     if(cfg.supabase && cfg.supabase.url) SUPABASE_URL = cfg.supabase.url;
     if(cfg.supabase && cfg.supabase.key) SUPABASE_KEY = cfg.supabase.key;
+    if(cfg.apiBase != null) API_BASE = cfg.apiBase;
     if(cfg.banco) BANCO = cfg.banco;
     aplicarBancoUI();
     if(disenos.length > 0) actualizar();  // recalcular por si cambió el margen
@@ -375,9 +643,253 @@ const MATERIALES = {
 let disenos = [];
 let hojaActiva = 0;
 let plan = null;
+let clienteFrecuente = null;   // {id, nombre, descuento} cuando el cliente entra con ID válido
 
 const $ = id => document.getElementById(id);
 const drop = $('drop'), file = $('file'), cv = $('cv'), ctx = cv.getContext('2d');
+
+/* ═══════════ PANTALLA DE ID / MEMBRESÍA ═══════════ */
+const ovCliente = $('overlayCliente');
+
+function cerrarClienteYSeguir(){
+  ovCliente.style.display = 'none';
+  $('overlay').style.display = 'flex';   // muestra el modal "Antes de empezar"
+}
+
+// Datos de los planes de membresía (para el saludo/selección)
+const PLANES_MEM = {
+  inicio:   {nombre:'INICIO',   pct:10, fee:50},
+  standard: {nombre:'STANDARD', pct:15, fee:75},
+  vip:      {nombre:'VIP',      pct:20, fee:99}
+};
+let planMemSeleccionado = 'standard';
+
+function seleccionarPlanMem(plan){
+  if(!PLANES_MEM[plan]) return;
+  planMemSeleccionado = plan;
+  document.querySelectorAll('#overlayMembresia .memCol').forEach(c =>
+    c.classList.toggle('memColSel', c.dataset.plan === plan));
+}
+
+// Muestra el mensaje de respaldo por WhatsApp (si Stripe no está disponible)
+function membresiaPorWhatsApp(p){
+  const msg = $('memMsg');
+  msg.innerHTML = '💳 El pago con tarjeta no está disponible en este momento.<br>' +
+    '¿Quieres tu membresía <b>' + p.nombre + '</b> (' + p.pct + '% · $' + p.fee +
+    '/mes) desde hoy? <a class="memWaLink">Actívala por WhatsApp →</a>';
+  msg.style.display = 'block';
+  const link = msg.querySelector('.memWaLink');
+  if(link) link.onclick = () => window.open('https://wa.me/' + WHATSAPP + '?text=' +
+    encodeURIComponent('Hola Disink 👋 Quiero activar la membresía ' + p.nombre +
+      ' (' + p.pct + '% de descuento, $' + p.fee + '/mes).'), '_blank');
+}
+
+async function activarMembresia(plan){
+  seleccionarPlanMem(plan);
+  const p = PLANES_MEM[plan];
+  const msg = $('memMsg');
+  msg.style.display = 'block';
+  msg.innerHTML = '⏳ Abriendo el pago seguro de Stripe…';
+  try{
+    const r = await fetch(API_BASE + '/api/crear-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({plan})
+    });
+    const data = await r.json();
+    if(r.ok && data && data.url){ window.location = data.url; return; }
+    throw new Error((data && data.error) || 'sin url');
+  }catch(e){
+    console.warn('Checkout no disponible, usando WhatsApp:', e.message);
+    membresiaPorWhatsApp(p);   // respaldo: no rompe nada si Stripe aún no está listo
+  }
+}
+
+// Abrir la pantalla de compra de membresía (vista interna, sin salir de la app)
+$('linkMembresia').addEventListener('click', () => {
+  $('overlayMembresia').style.display = 'flex';
+  $('memMsg').style.display = 'none';
+  seleccionarPlanMem('standard');   // preselecciona el plan popular
+});
+// Cerrar y volver a la pantalla de ID
+$('btnCerrarMembresia').addEventListener('click', () => {
+  $('overlayMembresia').style.display = 'none';
+});
+// Seleccionar plan al tocar cualquier parte de la tarjeta
+document.querySelectorAll('#overlayMembresia .memCol').forEach(card =>
+  card.addEventListener('click', () => seleccionarPlanMem(card.dataset.plan)));
+// Botón ACTIVAR de cada tarjeta: selecciona y muestra el mensaje (con opción de WhatsApp)
+['btnActivarInicio','btnActivarStandard','btnActivarVip'].forEach(id => {
+  const b = $(id);
+  if(b) b.addEventListener('click', e => { e.stopPropagation(); activarMembresia(b.dataset.plan); });
+});
+// HUECO STRIPE: hoy el botón ACTIVAR muestra un mensaje con opción de WhatsApp
+// (función activarMembresia, más abajo). Cuando tengas los links de pago de Stripe,
+// solo cambia el destino dentro de activarMembresia por, por ejemplo:
+//   const LINKS_STRIPE = { inicio: '...', standard: '...', vip: '...' };
+//   window.location = LINKS_STRIPE[plan];   // 10%/$50 · 15%/$75 · 20%/$99
+
+$('btnInvitado').addEventListener('click', () => {
+  clienteFrecuente = null;
+  cerrarClienteYSeguir();
+});
+
+$('btnContinuarSaludo').addEventListener('click', cerrarClienteYSeguir);
+{ const lp = $('linkPortal'); if(lp) lp.addEventListener('click', abrirPortalMembresia); }
+
+// Encabezado personalizado cuando hay cliente reconocido
+function pintarHeaderCliente(){
+  const el = $('headerCliente');
+  if(!el) return;
+  if(clienteFrecuente){
+    const partes = [clienteFrecuente.contacto, clienteFrecuente.nombre].filter(Boolean);
+    el.textContent = '💎 ' + (partes.join(' · ') || 'Cliente frecuente') +
+      (clienteFrecuente.descuento > 0 ? ' · −' + clienteFrecuente.descuento + '%' : '');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// Pantalla de GRACIAS al enviar el pedido por WhatsApp
+function mostrarGracias(){
+  let quien = '';
+  if(clienteFrecuente) quien = (clienteFrecuente.contacto || clienteFrecuente.nombre || '');
+  else quien = ($('cliente').value || '').trim();
+  quien = (quien || '').split(/\s+/)[0] || '';
+  $('graciasTitulo').textContent = quien ? ('¡Gracias, ' + quien + '!') : '¡Gracias por tu pedido!';
+  $('graciasTexto').innerHTML = 'Ya recibimos tu pedido por WhatsApp' +
+    (clienteFrecuente ? ' <b>(' + clienteFrecuente.id + ')</b>' : '') +
+    '. Esperamos verte pronto 💙';
+  $('overlayGracias').style.display = 'flex';
+}
+{ const b1 = $('btnOtroPedido'); if(b1) b1.addEventListener('click', () => location.reload()); }
+{ const b2 = $('btnCerrarGracias'); if(b2) b2.addEventListener('click', () => $('overlayGracias').style.display = 'none'); }
+
+async function buscarID(){
+  const code = $('inputID').value.trim().toUpperCase();
+  const err = $('idError');
+  err.style.display = 'none';
+  if(!code){ err.textContent = 'Escribe tu ID o toca "Imprimir sin ID".'; err.style.display = 'block'; return; }
+
+  const btn = $('btnEntrarID');
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/miembros_publico?id_cliente=eq.' +
+      encodeURIComponent(code) + '&select=*', {
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    });
+    const data = await res.json();
+    if(Array.isArray(data) && data.length > 0){
+      const c = data[0];
+      if(c.estado && c.estado !== 'activo'){
+        err.textContent = 'Tu membresía está ' + c.estado + '. Escríbenos por WhatsApp para reactivarla.';
+        err.style.display = 'block';
+      } else {
+        clienteFrecuente = {id: code, nombre: c.nombre || '', contacto: c.contacto || '', descuento: c.descuento || 0};
+        const cli = $('cliente'); if(cli) cli.value = c.nombre || '';
+        const quien = (c.contacto || c.nombre || '').split(/\s+/)[0] || '';
+        const ini = (c.iniciales && c.iniciales.trim())
+          ? c.iniciales.trim().toUpperCase()
+          : (c.contacto || c.nombre || 'D').trim().charAt(0).toUpperCase();
+        $('saludoAvatar').textContent = ini;
+        $('saludoBadge').textContent = '◇ ' + code;
+        $('saludoNombre').textContent = '¡Hola de nuevo, ' + (quien || c.nombre || '') + '!';
+        pintarHeaderCliente();
+        $('saludoTexto').textContent = (c.descuento > 0)
+          ? 'Tu descuento de cliente frecuente (−' + c.descuento + '%) ya está activo.'
+          : 'Qué gusto verte de nuevo.';
+        $('pasoID').style.display = 'none';
+        $('pasoSaludo').style.display = 'block';
+      }
+    } else {
+      err.textContent = 'No encontramos ese ID. Revísalo o entra sin ID.';
+      err.style.display = 'block';
+    }
+  }catch(e){
+    err.textContent = 'No se pudo verificar (revisa tu conexión). Puedes entrar sin ID.';
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+$('btnEntrarID').addEventListener('click', buscarID);
+$('inputID').addEventListener('keydown', e => { if(e.key === 'Enter') buscarID(); });
+
+// ── Regreso desde el pago de Stripe: mostrar el ID recién emitido ──
+async function revisarRegresoDePago(){
+  const q = new URLSearchParams(location.search);
+  if(q.get('membresia') === 'ok' && q.get('session_id')){
+    ovCliente.style.display = 'flex';
+    $('pasoID').style.display = 'none';
+    $('pasoSaludo').style.display = 'block';
+    $('saludoNombre').textContent = 'Activando tu membresía…';
+    $('saludoTexto').textContent = 'Un momento, estamos generando tu ID.';
+    try{
+      let data = null;
+      for(let i = 0; i < 6; i++){
+        const r = await fetch(API_BASE + '/api/consultar-membresia?session_id=' +
+          encodeURIComponent(q.get('session_id')));
+        if(r.status === 200){ data = await r.json(); break; }
+        await new Promise(res => setTimeout(res, 1500));
+      }
+      if(data && data.id_cliente){
+        clienteFrecuente = {id: data.id_cliente, nombre: data.nombre || '', contacto: data.contacto || '', descuento: data.descuento || 0};
+        const cli = $('cliente'); if(cli) cli.value = data.nombre || '';
+        const quien = (data.contacto || data.nombre || '').split(/\s+/)[0] || '';
+        $('saludoAvatar').textContent = (data.iniciales || (data.contacto || data.nombre || 'D').charAt(0)).toUpperCase();
+        $('saludoBadge').textContent = '◇ ' + data.id_cliente;
+        $('saludoNombre').textContent = '¡Bienvenido a Disink' + (quien ? ', ' + quien : '') + '!';
+        $('saludoTexto').textContent = 'Tu ID es ' + data.id_cliente +
+          ' — guárdalo. Tu descuento de −' + (data.descuento || 0) + '% ya está activo.';
+        pintarHeaderCliente();
+      } else {
+        $('saludoNombre').textContent = 'Pago recibido ✅';
+        $('saludoTexto').textContent = 'Tu ID llegará en segundos. Si no aparece, escríbenos por WhatsApp.';
+      }
+    }catch(e){
+      $('saludoNombre').textContent = 'Pago recibido ✅';
+      $('saludoTexto').textContent = 'Tu ID llegará en segundos. Escríbenos por WhatsApp si necesitas ayuda.';
+    }
+    history.replaceState({}, '', location.pathname);   // limpia la URL
+  } else if(q.get('membresia') === 'cancelada'){
+    history.replaceState({}, '', location.pathname);
+  }
+}
+revisarRegresoDePago();
+
+// ── Portal de cliente: administrar/cancelar la membresía (autoservicio) ──
+async function abrirPortalMembresia(){
+  if(!clienteFrecuente || !clienteFrecuente.id){
+    alert('Primero entra con tu ID de membresía.');
+    return;
+  }
+  try{
+    const r = await fetch(API_BASE + '/api/portal', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id_cliente: clienteFrecuente.id})
+    });
+    const data = await r.json();
+    if(r.ok && data && data.url){ window.location = data.url; return; }
+    throw new Error((data && data.error) || 'sin url');
+  }catch(e){
+    window.open('https://wa.me/' + WHATSAPP + '?text=' +
+      encodeURIComponent('Hola Disink 👋 Quiero administrar mi membresía (' +
+        (clienteFrecuente.id || '') + ').'), '_blank');
+  }
+}
+
+// Totales con descuento de cliente frecuente aplicado
+function calcTotales(){
+  const precio = PRECIOS[$('material').value] || 0;
+  const hojas = (plan && plan.numHojas) ? plan.numHojas : 0;
+  const bruto = hojas * precio;
+  let desc = 0;
+  if(clienteFrecuente && clienteFrecuente.descuento > 0)
+    desc = Math.round(bruto * clienteFrecuente.descuento / 100);
+  return {precio, hojas, bruto, desc, total: bruto - desc};
+}
 
 /* ---- Modal ---- */
 $('btnSeguir').addEventListener('click', () => $('overlay').style.display = 'none');
@@ -552,11 +1064,13 @@ function actualizarPago(){
   if(!plan || plan.numHojas === 0 || disenos.length === 0){
     $('pago').style.display = 'none'; return;
   }
-  const precio = PRECIOS[$('material').value] || 0;
-  const total = plan.numHojas * precio;
-  $('pagoTotal').textContent = '$' + total + ' MXN';
-  $('pagoDesglose').textContent = plan.numHojas + ' hoja' + (plan.numHojas!==1?'s':'') +
-    ' 13×19" × $' + precio + ' (' + MATERIALES[$('material').value].nombre + ')';
+  const t = calcTotales();
+  $('pagoTotal').textContent = '$' + t.total + ' MXN';
+  let desglose = plan.numHojas + ' hoja' + (plan.numHojas!==1?'s':'') +
+    ' 13×19" × $' + t.precio + ' (' + MATERIALES[$('material').value].nombre + ')';
+  if(t.desc > 0)
+    desglose += ' · 💎 Cliente frecuente −' + clienteFrecuente.descuento + '% (−$' + t.desc + ')';
+  $('pagoDesglose').textContent = desglose;
   $('pago').style.display = 'block';
 }
 
@@ -692,7 +1206,7 @@ function actualizar(){
       if(el) el.innerHTML = '<b>1 impresión</b> (imagen a tamaño tabloide)';
     });
     $('resumen').innerHTML = '<b>' + disenos.length + ' diseño' + (disenos.length>1?'s':'') +
-      '</b> · <strong>' + disenos.length + ' hoja' + (disenos.length>1?'s':'') + 
+      '</b> · <strong>' + disenos.length + ' hoja' + (disenos.length>1?'s':'') +
       '</strong> 13×19" (imagen a tamaño completo) en ' + MATERIALES[$('material').value].nombre;
     $('btnEnviar').disabled = false;
     $('navHojas').style.display = disenos.length > 1 ? 'flex' : 'none';
@@ -956,14 +1470,15 @@ $('btnEnviar').addEventListener('click', async () => {
   const cliente = $('cliente').value.trim() || 'cliente';
   const notas = $('notas').value.trim();
   const mat = MATERIALES[$('material').value].nombre;
-  const precio = PRECIOS[$('material').value] || 0;
-  const total = plan.numHojas * precio;
+  const t = calcTotales();
   const formaPago = document.querySelector('input[name=formaPago]:checked').value;
 
   const armarMsg = (totalPzas) =>
-    'Hola Disink 👋 Soy ' + cliente + '. Mi pedido: ' + plan.numHojas +
+    'Hola Disink 👋 Soy ' + cliente +
+    (clienteFrecuente ? ' (ID ' + clienteFrecuente.id + ')' : '') + '. Mi pedido: ' + plan.numHojas +
     ' hoja(s) 13x19" en ' + mat + ', ' + totalPzas + ' piezas en total. ' +
-    '💰 Total: $' + total + ' MXN. ' +
+    '💰 Total: $' + t.total + ' MXN' +
+    (t.desc > 0 ? ' (incluye tu descuento de cliente frecuente −' + clienteFrecuente.descuento + '%)' : '') + '. ' +
     (formaPago === 'transferencia'
       ? '🏦 Pagaré por transferencia y te mando mi comprobante para solo pasar por mi pedido.'
       : '💵 Pagaré en efectivo al llegar para que se imprima en ese momento.') +
@@ -974,7 +1489,8 @@ $('btnEnviar').addEventListener('click', async () => {
   if(prep.hash === hashEstado() && prep.link){
     const url = urlWA(armarMsg(prep.totalPzas) + ' 📎 Descarga mi plantilla aquí: ' + prep.link);
     const w = window.open(url, '_blank');   // con gesto del usuario: no se bloquea
-    if(!w) location.href = url;             // respaldo si el navegador lo impide
+    if(!w){ location.href = url; return; }  // respaldo si el navegador lo impide
+    mostrarGracias();                       // pantalla de despedida
     return;
   }
 
