@@ -1,0 +1,9 @@
+{
+  "name": "acomodador-disink-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Funciones de servidor (Vercel) para la membresia Disink con Stripe",
+  "dependencies": {
+    "stripe": "^16.12.0"
+  }
+}
